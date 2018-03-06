@@ -1,0 +1,14 @@
+{
+ "host_credentials": [
+    {
+        "host": "10.107.182.18",
+        "user": "root",
+        "password": "ca$hc0w"
+    },
+    {
+        "host": "10.107.182.19",
+        "user": "root",
+        "password": "ca$hc0w"
+    }
+ ]
+}
