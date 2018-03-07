@@ -1,1 +1,2 @@
-# Contains class for accessing configuration files as an
+# Contains class for accessing all configuration files
+
