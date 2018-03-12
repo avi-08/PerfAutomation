@@ -9,7 +9,7 @@ from paramiko.py3compat import u
 default_values = {
     "ktype": "dsa",
     "bits": 1024,
-    "filename": "output",
+    "filename": "rsakey",
     "comment": ""
 }
 

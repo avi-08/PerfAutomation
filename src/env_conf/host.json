@@ -1,14 +1,17 @@
 {
- "host_credentials": [
+ "HOST_DETAILS": [
     {
-        "host": "10.107.182.18",
-        "user": "root",
-        "password": "ca$hc0w"
+        "HOST": "10.107.182.18",
+        "USER": "root",
+        "PASSWORD": "ca$hc0w",
+        "NICS": "vmnic0,vmnic1"
     },
+
     {
-        "host": "10.107.182.19",
-        "user": "root",
-        "password": "ca$hc0w"
+        "HOST": "10.107.182.19",
+        "USER": "root",
+        "PASSWORD": "ca$hc0w",
+        "NICS": "vmnic4,vmnic5"
     }
  ]
 }

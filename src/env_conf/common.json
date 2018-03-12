@@ -1,4 +1,4 @@
 #Framework Log file location
 [LOGS]
-LOG_DIR = 'C:\Users\savi\Documents'
+LOG_DIR = r'C:\Users\savi\Documents'
 LOG_FILE_DEFAULT = 'log0.log'
