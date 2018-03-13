@@ -1,6 +1,11 @@
 import base64
+import logging
 
 import paramiko
+
+from src.util import LogUtil
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class HostSession:
@@ -29,33 +34,37 @@ class HostSession:
             client = paramiko.SSHClient()
             if ssl:
                 key = paramiko.RSAKey(data=base64.b64decode(b'AAAA'))
-                print("Connecting to host using ssl......")
+                #print("Connecting to host using ssl......")
                 client.get_host_keys().add(host, 'ssh-rsa', key)
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(host, username=user, password=password, port=port)
-                print("Connected to", host)
+                #print("Connected to", host)
                 return client
             else:
-                print("Connecting to host......")
+                _LOGGER.info("Connecting to host......", extra={"ntp_time": LogUtil.get_ntp_time()})
+                #print("Connecting to host......")
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(host, username=user, password=password, port=port)
-                print("Connected to", host)
+                _LOGGER.info(f"Connected to {host}", extra={"ntp_time": LogUtil.get_ntp_time()})
+                #print("Connected to", host)
                 return client
         except paramiko.AuthenticationException as authex:
-            print("Authentication Exception", authex.args)
+            _LOGGER.exception(f"Authentication Exception {authex.args}", extra={"ntp_time": LogUtil.get_ntp_time()})
         except paramiko.SSHException as sshex:
-            print("Authentication Exception", sshex.args)
+            _LOGGER.exception(f"Authentication Exception {sshex.agrs}", extra={"ntp_time": LogUtil.get_ntp_time()})
         except Exception as ex:
-            print("Connection Error Exception", ex.args)
+            _LOGGER.exception(f"Connection Error Exception {ex.args}", extra={"ntp_time": LogUtil.get_ntp_time()})
 
-    def disconnect(self, session):
+    def disconnect(self, client):
         """
 
-        :param session: PSSH or SSH object to disconnect session
+        :param client: PSSH or SSH object to disconnect session
         :return: None
         """
-        print("Disconnecting from host......")
-        session.close()
-        print("Disconnected.")
+        _LOGGER.info(f"Disconnecting from {client.get_transport().getpeername()[0]}......", extra={"ntp_time": LogUtil.get_ntp_time()})
+        #print("Disconnecting from host......")
+        client.close()
+        _LOGGER.info("Disconnected.", extra={"ntp_time": LogUtil.get_ntp_time()})
+        #print("Disconnected.")
 
 

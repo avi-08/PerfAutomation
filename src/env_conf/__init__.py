@@ -97,7 +97,7 @@ class Settings:
 
         :returns: None
         """
-        regex = re.compile("^(?P<digit_part>[0-9]+)(?P<alfa_part>[a-z]?)_.*.conf$")
+        regex = re.compile("^(?P<alfa_part>[a-z]?).*.conf$")
 
         def get_prefix(filename):
             """
