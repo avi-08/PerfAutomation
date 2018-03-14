@@ -13,8 +13,9 @@ from src.util import HostSession, LogUtil
 from src.env_conf import settings
 
 
+_CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
-VERBOSITY_LEVELS = {
+LOGGING_LEVELS = {
     'debug': logging.DEBUG,
     'info': logging.INFO,
     'warning': logging.WARNING,
@@ -34,6 +35,8 @@ def parse_args():
     parser.add_argument('-d', '--list-default-settings', action='store_true',
                         help='list default settings configuration and exit')
     parser.add_argument('-s', '--list-settings', action='store_true',
+                        help='list effective settings configuration and exit')
+    parser.add_argument('-v', '--verbose', action='store_true',
                         help='list effective settings configuration and exit')
     args = vars(parser.parse_args())
 
@@ -56,16 +59,15 @@ def handle_list_options(args):
 def configure_logging(level):
     """Configure logging.
     """
-    #log_file_default = os.path.join(
-      #  settings.getValue('LOG_DIR'), settings.getValue('LOG_FILE_DEFAULT'))
+    log_file_default = os.path.join(settings.getValue('LOG_DIR'), settings.getValue('LOG_FILE_DEFAULT'))
+
     global _LOGGER
-    log_file_default = r'C:\Users\savi\Desktop\logs.log'
     _LOGGER.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter('%(ntp_time)s [%(levelname)-8s]: (%(name)s) - %(message)s', datefmt='%Y-%m-%dT%H:%M:%SZ')
 
     stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(VERBOSITY_LEVELS[level])
+    stream_handler.setLevel(LOGGING_LEVELS[level])
     stream_handler.setFormatter(formatter)
     _LOGGER.addHandler(stream_handler)
 
@@ -79,9 +81,27 @@ def main():
     """
     Main Script
     """
-    #parse_args()
+    args = parse_args()
 
-    configure_logging('info')
+    # configure settings
+
+    settings.load_from_dir(os.path.join(_CURR_DIR, 'env_conf'))
+
+    # load command line parameters first in case there are settings files
+    # to be used
+    settings.load_from_dict(args)
+
+    # reload command line parameters since these should take higher priority
+    # than both a settings file and environment variables
+    settings.load_from_dict(args)
+
+    # if required, handle list-* operations
+    handle_list_options(args)
+
+    if(args['verbose']):
+        configure_logging('debug')
+    else:
+        configure_logging(settings.getValue('VERBOSITY'))
 
 
     hosts = json.load(open(r'env_conf\host.json'))

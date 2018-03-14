@@ -3,6 +3,7 @@
 import os
 import copy
 import re
+import pprint
 
 class Settings:
     """
@@ -33,19 +34,7 @@ class Settings:
         """
         if attr in self.__dict__:
             default_value = getattr(self, attr)
-            # Check if parameter value was modified by CLI option
-            cli_value = get_test_param(attr)
-            if cli_value is not None:
-                # TRAFFIC dictionary is not overridden by CLI option
-                # but only updated by specified values
-                if attr == 'TRAFFIC':
-                    tmp_value = copy.deepcopy(default_value)
-                    tmp_value = merge_spec(tmp_value, cli_value)
-                    return self._eval_param(tmp_value)
-                else:
-                    return self._eval_param(cli_value)
-            else:
-                return self._eval_param(default_value)
+            return self._eval_param(default_value)
         else:
             raise AttributeError("%r object has no attribute %r" %
                                  (self.__class__, attr))
@@ -73,6 +62,20 @@ class Settings:
         if attr in self.__dict__['TEST_PARAMS']:
             self.__dict__['TEST_PARAMS'].pop(attr)
 
+    def __str__(self):
+        """Provide settings as a human-readable string.
+
+        This can be useful for debug.
+
+        Returns:
+            A human-readable string.
+        """
+        tmp_dict = {}
+        for key in self.__dict__:
+            tmp_dict[key] = self.getValue(key)
+
+        return pprint.pformat(tmp_dict)
+
     def load_from_file(self, path):
         """Update ``settings`` with values found in module at ``path``.
         """
@@ -97,15 +100,14 @@ class Settings:
 
         :returns: None
         """
-        regex = re.compile("^(?P<alfa_part>[a-z]?).*.conf$")
+        regex = re.compile("^(?P<alfa_part>[a-z]?).*.[conf,json]$")
 
         def get_prefix(filename):
             """
             Provide a suitable function for sort's key arg
             """
             match_object = regex.search(os.path.basename(filename))
-            return [int(match_object.group('digit_part')),
-                    match_object.group('alfa_part')]
+            return [match_object.group('alfa_part')]
 
         # get full file path to all files & dirs in dir_path
         file_paths = os.listdir(dir_path)
