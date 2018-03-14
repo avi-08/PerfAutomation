@@ -19,7 +19,7 @@ class HostSession:
         """
         pass
 
-    def connect(self, host, user, password, ssl=False, port=22):
+    def connect(self, host, user, password, ssl=True, port=22):
         """
 
         :param host: host(FQDN or IP) to connect with
@@ -42,11 +42,9 @@ class HostSession:
                 return client
             else:
                 _LOGGER.info("Connecting to host......", extra={"ntp_time": LogUtil.get_ntp_time()})
-                #print("Connecting to host......")
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(host, username=user, password=password, port=port)
                 _LOGGER.info(f"Connected to {host}", extra={"ntp_time": LogUtil.get_ntp_time()})
-                #print("Connected to", host)
                 return client
         except paramiko.AuthenticationException as authex:
             _LOGGER.exception(f"Authentication Exception {authex.args}", extra={"ntp_time": LogUtil.get_ntp_time()})

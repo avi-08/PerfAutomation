@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from src.env_conf import settings
 import ntplib
 
 
@@ -8,7 +9,7 @@ def get_ntp_time():
     Function to get time from NTP server for logging
     :return: datetime in UTC format
     """
-    ntp_server = '10.107.182.200'
+    ntp_server = settings.getValue('NTP_SERVER')
     try:
         call = ntplib.NTPClient()
         response = call.request(ntp_server, version=3)
