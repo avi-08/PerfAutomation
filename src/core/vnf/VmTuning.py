@@ -2,22 +2,161 @@
     This module deals with VM configurations, verification and other controls
 """
 from __future__ import print_function
+import paramiko
+import re
 
-__author__= 'Somanath'
+__author__ = 'Somanath'
 
-class VMConfig :
+host='10.107.182.19'
+username='root'
+password='ca$hc0w'
+datastore ='Datastore1'
+vmName= 'TEST-VM'
+result={}
+mat_list=[]
 
-    def __init__(self):
-        pass
 
-    def verify_latencySensitivity(self, session):
-        """
-        Verify the Latency Sensitivity feature
+# Function to Read .vmx file
+def readVMX(session, datastore, vmName):
+    print('\nReading {}.vmx file'.format(vmName))
+    stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx')
+    return (stdout.read().decode())
 
-        :param session:
-        :return:
-        """
-        stdin, stdout, stderr = session.exec_command('net-stats -i 60 -t WicQv -A > netstats')
-        result = stdout.readline()
-        # print(result)
 
+# Get VMid
+def get_vm_id(session, vmName):
+    stdin, stdout, stderr = session.exec_command(f'vim-cmd vmsvc/getallvms | grep {vmName}')
+    return (stdout.read().decode().split(' ')[0])
+
+
+# Power off VM's
+def power_off_vm(session, vmName):
+    print(f'PowerOff: {vmName}')
+    vmid = get_vm_id(session, vmName)
+    stdin, stdout, stderr = session.exec_command('vim-cmd vmsvc/power.off {}'.format(int(vmid)))
+
+
+# Power on VM's
+def power_on_vm(session, vmName):
+    print(f'PowerOn: {vmName}')
+    vmid = get_vm_id(session, vmName)
+    stdin, stdout, stderr = session.exec_command('vim-cmd vmsvc/power.on {}'.format(int(vmid)))
+
+
+# Verify the NUMA Affinity
+def NUMAaffinity(session, vmnic='vmnic0'):
+    stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
+    numaNode = stdout.read().decode()
+    # return numaNode.strip('\n').split(':')[1]
+    return re.sub(' +', ' ', numaNode.strip('\n')).split(':')[1]
+
+
+# Replace the string the file
+def replace_parameter_vmx(session, datastore, vmName, original, new):
+    # sed -i 's/numa.nodeAffinity = 0/numa.nodeAffinity="0"/g'
+    stdin, stdout, stderr = session.exec_command(f'sed -i \'s/{original}/{new}/g\' vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx')
+
+
+# add perameter to the .vmx file
+def add_parameter_vmx(session, datastore, vmName, data):
+    stdin, stdout, stderr = session.exec_command(
+        'echo "{}" >> vmfs/volumes/{}/{}/{}.vmx'.format(data, datastore, vmName,vmName))
+
+
+# SET numa.nodeAffinity value
+def set_numa_NodeAffinity(session, datastore, vmName, numanode):
+    data = readVMX(session, datastore, vmName)
+    data1 = f'numa.nodeAffinity = "{numanode}"'
+    power_off_vm(session, vmName)
+    add_parameter_vmx(session, datastore, vmName, data1)
+    replace_parameter_vmx(session, datastore, vmName, data1.replace('"', ''), data1)
+    power_on_vm(session, vmName)
+
+# Verify NUMA Affinity in config proprity
+def verify_numa_NodeAffinity(session,datastore, vmName):
+    print('verify the numa nodeAffinity')
+    data1 =f'numa.nodeAffinity = "{NUMAaffinity(session)}"'
+    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep numa.node')
+    numaNode = stdout.read().decode()
+    if len(numaNode)!= 0:
+        if int(numaNode.strip('\n').split('=')[1].replace('"','')) == int(NUMAaffinity(session)):
+            return True
+        else:
+            replace_parameter_vmx(session,datastore,vmName,data1.replace('"',''),data1)
+    else:
+        set_numa_NodeAffinity(session,datastore,vmName, NUMAaffinity(session))
+
+
+# Verify the Vnic TX thread Allocation
+def verify_vnic_tx_thread(session, datastore, vmName):
+    print('\nVnic TX thread Alllocation')
+    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep ctxPerDev')
+    return True if len(stdout.read().decode()) else False
+
+# Verify the SysContext
+def verify_SysContext(session, datastore, vmName):
+    print ('\nSys Context')
+    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep sched.cpu.latencySensitivity.sysContexts')
+    return True if len(stdout.read().decode()) else False
+
+# Verify the Vnic Adapter
+def vnic_adapter_type(session,datastore, vmName):
+    print ('\nVnic Adapter type (vmxnet) :')
+    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep vmxnet')
+    # print(stdout.read())
+    return True if len(stdout.read()) != 0 else False
+
+# Verify the CPU pinning is proper
+def verify_cpuPinning():
+    for key, value in result.items():
+        for i in range(1, len(mat_list) - 1):
+            if key == mat_list[i][23] and value == mat_list[i][1]:
+                print('valid')
+                break
+        # if i != (len(mat_list) - 1):
+        #    print('cpuid not pinned :{}'.format(key))
+
+# check the values are reservation are enabled
+def latency_value_check(latencySensitivity, exclaff):
+    return True if latencySensitivity == -1 and exclaff > 0 else False
+
+def verify_latencySensitivity(self, session):
+    """
+    Verify the Latency Sensitivity feature
+
+    :param session:
+    :return:
+    """
+    print('verifing the Latency Sensitivity on vm(s)')
+    stdin, stdout, stderr = session.exec_command('net-stats -i 3 -t WicQv -A')
+    d = eval(stdout.read().decode())
+    data = d['stats'][0]['vcpus']
+    for i in data:
+        if data[i]['name'] != 'net-stats':
+            result[i] = int(data[i]['exclaff'])
+            if latency_value_check(int(data[i]['latencySensitivity']), int(data[i]['exclaff'])) == True:
+                result[i] = int(data[i]['exclaff'])
+                # print("Latency Sensitivity for VCPU:{} is valid".format(data[i]['name']))
+            # else:
+            # print("Latency Sensitivity for VCPU:{} is ***not-valid***".format(data[i]['name']))
+    stdin, stdout, stderr = session.exec_command('sched-stats -t pcpu-stats')
+    schedStats = stdout.read().decode()
+    data = re.sub(' +', ' ', schedStats).split('\n')
+    for i in range(len(data)):
+        mat_list.append(data[i].split(' '))
+
+    # cross Verifing the Latency Sensitivity
+    verify_cpuPinning()
+
+def getSession():
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(host,username=username, password=password, port=22)
+        print('connecting ...')
+        return client
+    except paramiko.SSHException as e:
+        print(e.args)
+        client.close()
+
+session = getSession()
