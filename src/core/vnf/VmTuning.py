@@ -17,92 +17,92 @@ mat_list=[]
 
 
 # Function to Read .vmx file
-def readVMX(session, datastore, vmName):
+def readVMX(client, datastore, vmName):
     print('\nReading {}.vmx file'.format(vmName))
-    stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx')
+    stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx')
     return (stdout.read().decode())
 
 
 # Get VMid
-def get_vm_id(session, vmName):
-    stdin, stdout, stderr = session.exec_command(f'vim-cmd vmsvc/getallvms | grep {vmName}')
+def get_vm_id(client, vmName):
+    stdin, stdout, stderr = client.exec_command(f'vim-cmd vmsvc/getallvms | grep {vmName}')
     return (stdout.read().decode().split(' ')[0])
 
 
 # Power off VM's
-def power_off_vm(session, vmName):
+def power_off_vm(client, vmName):
     print(f'PowerOff: {vmName}')
-    vmid = get_vm_id(session, vmName)
-    stdin, stdout, stderr = session.exec_command('vim-cmd vmsvc/power.off {}'.format(int(vmid)))
+    vmid = get_vm_id(client, vmName)
+    stdin, stdout, stderr = client.exec_command('vim-cmd vmsvc/power.off {}'.format(int(vmid)))
 
 
 # Power on VM's
-def power_on_vm(session, vmName):
+def power_on_vm(client, vmName):
     print(f'PowerOn: {vmName}')
-    vmid = get_vm_id(session, vmName)
-    stdin, stdout, stderr = session.exec_command('vim-cmd vmsvc/power.on {}'.format(int(vmid)))
+    vmid = get_vm_id(client, vmName)
+    stdin, stdout, stderr = client.exec_command('vim-cmd vmsvc/power.on {}'.format(int(vmid)))
 
 
 # Verify the NUMA Affinity
-def NUMAaffinity(session, vmnic='vmnic0'):
-    stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
+def NUMAaffinity(client, vmnic='vmnic0'):
+    stdin, stdout, stderr = client.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
     numaNode = stdout.read().decode()
     # return numaNode.strip('\n').split(':')[1]
     return re.sub(' +', ' ', numaNode.strip('\n')).split(':')[1]
 
 
 # Replace the string the file
-def replace_parameter_vmx(session, datastore, vmName, original, new):
+def replace_parameter_vmx(client, datastore, vmName, original, new):
     # sed -i 's/numa.nodeAffinity = 0/numa.nodeAffinity="0"/g'
-    stdin, stdout, stderr = session.exec_command(f'sed -i \'s/{original}/{new}/g\' vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx')
+    stdin, stdout, stderr = client.exec_command(f'sed -i \'s/{original}/{new}/g\' vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx')
 
 
 # add perameter to the .vmx file
-def add_parameter_vmx(session, datastore, vmName, data):
-    stdin, stdout, stderr = session.exec_command(
+def add_parameter_vmx(client, datastore, vmName, data):
+    stdin, stdout, stderr = client.exec_command(
         'echo "{}" >> vmfs/volumes/{}/{}/{}.vmx'.format(data, datastore, vmName,vmName))
 
 
 # SET numa.nodeAffinity value
-def set_numa_NodeAffinity(session, datastore, vmName, numanode):
-    data = readVMX(session, datastore, vmName)
+def set_numa_NodeAffinity(client, datastore, vmName, numanode):
+    data = readVMX(client, datastore, vmName)
     data1 = f'numa.nodeAffinity = "{numanode}"'
-    power_off_vm(session, vmName)
-    add_parameter_vmx(session, datastore, vmName, data1)
-    replace_parameter_vmx(session, datastore, vmName, data1.replace('"', ''), data1)
-    power_on_vm(session, vmName)
+    power_off_vm(client, vmName)
+    add_parameter_vmx(client, datastore, vmName, data1)
+    replace_parameter_vmx(client, datastore, vmName, data1.replace('"', ''), data1)
+    power_on_vm(client, vmName)
 
 # Verify NUMA Affinity in config proprity
-def verify_numa_NodeAffinity(session,datastore, vmName):
+def verify_numa_NodeAffinity(client,datastore, vmName):
     print('verify the numa nodeAffinity')
-    data1 =f'numa.nodeAffinity = "{NUMAaffinity(session)}"'
-    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep numa.node')
+    data1 =f'numa.nodeAffinity = "{NUMAaffinity(client)}"'
+    stdin , stdout, stderr = client.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep numa.node')
     numaNode = stdout.read().decode()
     if len(numaNode)!= 0:
-        if int(numaNode.strip('\n').split('=')[1].replace('"','')) == int(NUMAaffinity(session)):
+        if int(numaNode.strip('\n').split('=')[1].replace('"','')) == int(NUMAaffinity(client)):
             return True
         else:
-            replace_parameter_vmx(session,datastore,vmName,data1.replace('"',''),data1)
+            replace_parameter_vmx(client,datastore,vmName,data1.replace('"',''),data1)
     else:
-        set_numa_NodeAffinity(session,datastore,vmName, NUMAaffinity(session))
+        set_numa_NodeAffinity(client,datastore,vmName, NUMAaffinity(client))
 
 
 # Verify the Vnic TX thread Allocation
-def verify_vnic_tx_thread(session, datastore, vmName):
+def verify_vnic_tx_thread(client, datastore, vmName):
     print('\nVnic TX thread Alllocation')
-    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep ctxPerDev')
+    stdin , stdout, stderr = client.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep ctxPerDev')
     return True if len(stdout.read().decode()) else False
 
 # Verify the SysContext
-def verify_SysContext(session, datastore, vmName):
+def verify_SysContext(client, datastore, vmName):
     print ('\nSys Context')
-    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep sched.cpu.latencySensitivity.sysContexts')
+    stdin , stdout, stderr = client.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep sched.cpu.latencySensitivity.sysContexts')
     return True if len(stdout.read().decode()) else False
 
 # Verify the Vnic Adapter
-def vnic_adapter_type(session,datastore, vmName):
+def vnic_adapter_type(client,datastore, vmName):
     print ('\nVnic Adapter type (vmxnet) :')
-    stdin , stdout, stderr = session.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep vmxnet')
+    stdin , stdout, stderr = client.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx | grep vmxnet')
     # print(stdout.read())
     return True if len(stdout.read()) != 0 else False
 
@@ -120,15 +120,15 @@ def verify_cpuPinning():
 def latency_value_check(latencySensitivity, exclaff):
     return True if latencySensitivity == -1 and exclaff > 0 else False
 
-def verify_latencySensitivity(self, session):
+def verify_latencySensitivity(self, client):
     """
     Verify the Latency Sensitivity feature
 
-    :param session:
+    :param client:
     :return:
     """
     print('verifing the Latency Sensitivity on vm(s)')
-    stdin, stdout, stderr = session.exec_command('net-stats -i 3 -t WicQv -A')
+    stdin, stdout, stderr = client.exec_command('net-stats -i 3 -t WicQv -A')
     d = eval(stdout.read().decode())
     data = d['stats'][0]['vcpus']
     for i in data:
@@ -139,7 +139,7 @@ def verify_latencySensitivity(self, session):
                 # print("Latency Sensitivity for VCPU:{} is valid".format(data[i]['name']))
             # else:
             # print("Latency Sensitivity for VCPU:{} is ***not-valid***".format(data[i]['name']))
-    stdin, stdout, stderr = session.exec_command('sched-stats -t pcpu-stats')
+    stdin, stdout, stderr = client.exec_command('sched-stats -t pcpu-stats')
     schedStats = stdout.read().decode()
     data = re.sub(' +', ' ', schedStats).split('\n')
     for i in range(len(data)):
@@ -159,4 +159,6 @@ def getSession():
         print(e.args)
         client.close()
 
-session = getSession()
+client = getSession()
+
+client.close()
