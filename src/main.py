@@ -11,6 +11,7 @@ import json
 
 from src.util import HostSession, LogUtil
 from src.env_conf import settings
+from src.tests import host_config
 
 
 _CURR_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -64,7 +65,7 @@ def configure_logging(level):
     global _LOGGER
     _LOGGER.setLevel(logging.DEBUG)
 
-    formatter = logging.Formatter('%(ntp_time)s [%(levelname)-8s]: (%(name)s) - %(message)s', datefmt='%Y-%m-%dT%H:%M:%SZ')
+    formatter = logging.Formatter('%(asctime)s [%(levelname)-8s]: (%(name)s) - %(message)s', datefmt='%Y-%m-%dT%H:%M:%SZ')
 
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(LOGGING_LEVELS[level])
@@ -103,7 +104,8 @@ def main():
     else:
         configure_logging(settings.getValue('VERBOSITY'))
 
-
+    host_config.host_config(settings)
+    """
     hosts = json.load(open(r'env_conf\host.json'))
     for host in hosts['HOST_DETAILS']:
         sess = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
@@ -115,8 +117,8 @@ def main():
              #   print(line.strip('\n'))
             HostSession.HostSession().disconnect(sess)
         else:
-            _LOGGER.error("Unable to connect.", extra={"ntp_time": LogUtil.get_ntp_time()})
-
+            _LOGGER.error("Unable to connect.")
+    """
 
 #if __name__ == 'main':
 main()

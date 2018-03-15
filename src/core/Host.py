@@ -11,6 +11,17 @@ __author__ = "Avi Sharma"
 #       These optimizations have to be applied and verified manually.
 #######################################################################################################################
 
+
+def get_host_version(session):
+    """
+    Get ESXi host version and build
+    :param session: paramiko SSHClient object
+    :return: (str) ESXi host version and build
+    """
+    stdin, stdout, stderr = session.exec_command('vmware -v')
+    return stdout.read().decode()
+
+
 def is_hyperthreading_enabled(client):
     """
     Check if hyper threading is enabled
@@ -35,18 +46,35 @@ def config_hyperthreading(client, enable):
         return False if stderr.read() else True
 
 
-def verify_nic_driver(client, vmnic, driver, version):
+def verify_nic_driver(client, vmnic, driver):   #, version
     """
     Check if required driver is present for a nic
     :param client: paramiko SSHClient object
     :param vmnic: (str)<vmnicX> for checking driver
     :param driver: (str)driver name (e.g ixgbe, ixgben, etc)
-    :param version: (str)specific driver version to check for
     :return: (bool) True if specified version of driver is enabled on vmnic else False
     """
     stdin, stdout, stderr = client.exec_command(f'vsish -ep get /net/pNics/{vmnic}/properties')
     properties = eval(stdout.read().decode())
-    return True if (properties['module'] == driver) and (properties['version'] == version) else False
+    return True if (properties['module'] == driver) else False
+
+
+def config_nic_driver(client, vmnic, driver):
+    """
+    Configure nic driver
+    :param client:
+    :param vmnic:
+    :param driver:
+    :return:
+    """
+    if verify_nic_driver(client, vmnic, driver):
+        return True
+    stdin, stdout, stderr = client.exec_command(f' esxcli software vib list | grep {driver}')
+    if stdout.read().decode().find(driver) > -1:
+        stdin, stdout, stderr = client.exec_command(f' esxcli system module set -m {driver} -e true')
+        stdin, stdout, stderr = client.exec_command(f' esxcli system module load -m {driver}')
+        return True
+    return False
 
 
 def is_fcoe_enabled(client):
@@ -56,7 +84,7 @@ def is_fcoe_enabled(client):
     :return: (bool) True if FCoE is enabled else False
     """
     stdin, stdout, stderr = client.exec_command('esxcfg-module -g ixgbe')
-    return True if stdout.read().decode().find("options = 'CNA=0,0'") > 0 else False
+    return True if stdout.read().decode().find("options = 'CNA=0,0'") > -1 else False
 
 
 def config_fcoe(client, enable):
@@ -74,28 +102,29 @@ def config_fcoe(client, enable):
         return True if len(stdout.readline()) == 0 else False
 
 
-def verify_rss(client):
+def verify_rss(client, driver):
     """
     Check if Receive side scaling is enabled on driver
     :param client: paramiko SSHClient object
     :return: (bool) True if RSS is enabled else False
     """
-    stdin, stdout, stderr = client.exec_command('esxcfg-module -g ixgben')
-    return True if stdout.read().decode().find("options = 'RSS=") > 0 else False
+    stdin, stdout, stderr = client.exec_command(f'esxcfg-module -g {driver}')
+    return True if stdout.read().decode().find("options = 'RSS=(4)") > -1 else False
 
 
-def configure_rss(client, enable):
+def config_rss(client, driver, enable):
     """
     Configure Receive side scaling on driver
     :param client: paramiko SSHClient object
+    :param driver:
     :param enable:
     :return: (bool) True if no errors occur while command execution else False
     """
-    if verify_rss(client) == enable:
+    if verify_rss(client, driver) == enable:
         return True
     else:
-        value = '0, 0' if not enable else '1, 1'
-        stdin, stdout, stderr = client.exec_command(f'esxcli system module parameters set -m ixgbe -p "RSS={value}" ')
+        value = '(0)' if enable == True else '(4)'
+        stdin, stdout, stderr = client.exec_command(f'esxcli system module parameters set -m {driver} -p "RSS={value}"')
         return True if len(stdout.readline()) == 0 else False
 
 

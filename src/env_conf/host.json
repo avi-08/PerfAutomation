@@ -1,5 +1,5 @@
 {
- "HOST_DETAILS": [
+"HOST_DETAILS": [
     {
         "HOST": "10.107.182.18",
         "USER": "root",
@@ -13,5 +13,52 @@
         "PASSWORD": "ca$hc0w",
         "NICS": "vmnic4,vmnic5"
     }
- ]
+ ],
+
+
+"ESXI65": {
+    "ENABLE_HYPERTHREADING": true,
+
+    "ENABLE_RSS": true,
+
+    "ENABLE_QUEUE_PAIRING": false,
+
+    "ENABLE_TX_SPLIT": true,
+
+    "SW_TX_QUEUE": 6000,
+
+    "NIC_DRIVER": {
+        "NAME": "Ixgben",
+        "VERSION": "1.0.0.0"
+    },
+
+    "NIC_BUFFER_SIZE": {
+        "RX": 2048,
+        "TX": 4096
+    }
+},
+
+"ESXI60U2": {
+    "ENABLE_HYPERTHREADING": true,
+
+    "ENABLE_FCOE": false,
+
+    "ENABLE_RSS": true,
+
+    "ENABLE_QUEUE_PAIRING": false,
+
+    "ENABLE_TX_SPLIT": true,
+
+    "SW_TX_QUEUE": 1010,
+
+    "NIC_DRIVER": {
+        "NAME": "Ixgbe",
+        "VERSION": "4.4.1-iov"
+    },
+
+    "NIC_BUFFER_SIZE": {
+        "RX": 992,
+        "TX": 1024
+    }
+}
 }
