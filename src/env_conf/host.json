@@ -35,7 +35,11 @@
     "NIC_BUFFER_SIZE": {
         "RX": 2048,
         "TX": 4096
-    }
+    },
+
+    "VM_HARDWARE_VERSION": 13,
+
+    "VM_SYSCONTEXT": 8
 },
 
 "ESXI60U2": {
@@ -59,6 +63,10 @@
     "NIC_BUFFER_SIZE": {
         "RX": 992,
         "TX": 1024
-    }
+    },
+
+    "VM_HARDWARE_VERSION": 11,
+
+    "VM_SYSCONTEXT": 2
 }
 }
