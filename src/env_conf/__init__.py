@@ -5,6 +5,7 @@ import copy
 import re
 import pprint
 
+
 class Settings:
     """
     class to provide configurations as object across the framework

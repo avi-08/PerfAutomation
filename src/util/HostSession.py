@@ -3,7 +3,6 @@ import logging
 
 import paramiko
 
-from src.util import LogUtil
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ class HostSession:
 
     def connect(self, host, user, password, ssl=True, port=22):
         """
-
+        Function that creates a ssh session with the host and returns an object of paramiko.SSHClient
         :param host: host(FQDN or IP) to connect with
         :param user: username of host to connect
         :param password: password of host to connect
@@ -34,11 +33,11 @@ class HostSession:
             client = paramiko.SSHClient()
             if ssl:
                 key = paramiko.RSAKey(data=base64.b64decode(b'AAAA'))
-                #print("Connecting to host using ssl......")
+                _LOGGER.info("Connecting to host using ssl......")
                 client.get_host_keys().add(host, 'ssh-rsa', key)
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(host, username=user, password=password, port=port)
-                #print("Connected to", host)
+                _LOGGER.info("Connected to", host)
                 return client
             else:
                 _LOGGER.info("Connecting to host......")
@@ -49,19 +48,18 @@ class HostSession:
         except paramiko.AuthenticationException as authex:
             _LOGGER.exception(f"Authentication Exception {authex.args}")
         except paramiko.SSHException as sshex:
-            _LOGGER.exception(f"Authentication Exception {sshex.agrs}")
+            _LOGGER.exception(f"SSH Exception {sshex.agrs}")
         except Exception as ex:
             _LOGGER.exception(f"Connection Error Exception {ex.args}")
+
     def disconnect(self, client):
         """
-
-        :param client: PSSH or SSH object to disconnect session
+        Function to close the ssh session with host,
+        :param client: paramiko.SSHClient object to disconnect session
         :return: None
         """
         _LOGGER.info(f"Disconnecting from {client.get_transport().getpeername()[0]}......")
-        #print("Disconnecting from host......")
         client.close()
         _LOGGER.info("Disconnected.")
-        #print("Disconnected.")
 
 
