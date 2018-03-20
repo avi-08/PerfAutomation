@@ -4,6 +4,7 @@ import json
 
 datastore = 'Datastore1'
 vmName = 'TEST-VM'
+
 def vm_config():
     hosts = json.load(open(r'..\env_conf\host.json'))
     for host in hosts['HOST_DETAILS']:
@@ -24,6 +25,14 @@ def vm_config():
         print(f'system context : {VmTuning.verify_SysContext(client,datastore,vmName)}')
 
         print(f'Vm config is Completed')
+
+        print('Latency Sensitivity Verification:{}'.format(VmTuning.verify_latency_sensitivity(client, vmName) == 'high'))
+        if VmTuning.verify_latency_sensitivity(client, vmName) != 'high':
+            VmTuning.config_latency_sensitivity(client, vmName)
+        print('verify_tx_thread_allocation:{}'.format(VmTuning.verify_tx_thread_allocation(client, vmName)))
+        if VmTuning.verify_tx_thread_allocation(client, vmName) == False:
+            VmTuning.config_tx_thread_allocation(client, vmName, False)
+        print('verify_sys_context : {}'.format(VmTuning.verify_sys_context(client, vmName, 3)))
         client.close()
 
 vm_config()
