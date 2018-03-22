@@ -42,7 +42,7 @@ def host_config(keep_defaults=False):
             params = hosts['ESXI65']
             _LOGGER.info(f'ESXi version details: {ver}')
             _LOGGER.info(f'Checking if Hyper threading enabled: {config_host.is_hyperthreading_enabled(client)}')
-            success = config_host.config_hyperthreading(client, enable=params["ENABLE_HYPERTHREADING"])
+            success, message = config_host.config_hyperthreading(client, enable=params["ENABLE_HYPERTHREADING"])
             if success:
                 _LOGGER.info(f'Hyperthreading configuration(enable={params["ENABLE_HYPERTHREADING"]})success:{success}')
             else:

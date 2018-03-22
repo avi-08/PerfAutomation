@@ -33,8 +33,6 @@ def parse_args():
     :return: Dictionary containing command line args
     """
     parser = argparse.ArgumentParser(prog=__file__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-d', '--list-default-settings', action='store_true',
-                        help='list default settings configuration and exit')
     parser.add_argument('-s', '--list-settings', action='store_true',
                         help='list effective settings configuration and exit')
     parser.add_argument('-v', '--verbose', action='store_true',
@@ -56,6 +54,7 @@ def handle_list_options(args):
     if args['list_default_settings']:
         print(str(settings))
         sys.exit(0)
+
 
 def configure_logging(level):
     """Configure logging.
