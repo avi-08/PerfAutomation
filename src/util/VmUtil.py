@@ -2,71 +2,111 @@
     Basic Utility for the VM(s)
 """
 from __future__ import print_function
-import  re
+import logging
+import re
+_LOGGER = logging.getLogger(__name__)
 
 class VmUtility:
 
     def __init__(self):
         pass
 
+    #get virtual machine list
+    def get_vm_list(self, client):
+        """
+        getting the Virtual machine list in that host
+        :param client:
+        :return: list of virtual machime(s) in host
+        """
+        a=[]
+        _LOGGER.debug(f'Executing command : esxcli vm process list |grep display -i')
+        stdin, stdout, stderr = client.exec_command('esxcli vm process list |grep display -i')
+        r = stdout.read().decode()
+        if r:
+            a = re.sub(' +', ' ', r.replace('Display Name:', '')).strip(' ').split(' ')
+            _LOGGER.debug(f' List of Virtual machine : {a}')
+            return a
+        else:
+            return a
+
+
+    # Extracting NUMA node of the virtual Machine
+    def get_numa_node(self, session, vmname):
+        _LOGGER.debug(f'cat vmfs/volumes/{self.get_datastore(session, vmname)}/{vmname}/test.vmx | grep numa.nodeAffinity')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{self.get_datastore(session, vmname)}/{vmname}/test.vmx | grep numa.nodeAffinity')
+        r = stdout.read().decode()
+        _LOGGER.debug(f'command Result : {r}')
+        st = re.search('"(.*?)"', r)
+        if st:
+            status = st.group()
+            return status
+
     # Get VMid
-    def get_vm_id(client, vmName):
+    def get_vm_id(self, client, vmname):
         """
 
-        :param vmName: Name of the Virtual Machine
+        :param vmname: Name of the Virtual Machine
         :return: Virtual machine ID
         """
-        stdin, stdout, stderr = client.exec_command(f'vim-cmd vmsvc/getallvms | grep {vmName}')
-        return (stdout.read().decode().split(' ')[0])
+        _LOGGER.debug(f'Executing command : vim-cmd vmsvc/getallvms | grep {vmname} ')
+        stdin, stdout, stderr = client.exec_command(f'vim-cmd vmsvc/getallvms | grep {vmname}')
+        r = stdout.read().decode()
+        _LOGGER.debug(f'command Result : {r}')
+        return r.split(' ')[0]
 
     # Power on VM
-    def power_on_vm(client, vmName):
+    def power_on_vm(self, client, vmname):
         """
 
-        :param vmName: Name of the Virtual Machine
+        :param vmname: Name of the Virtual Machine
         :return:
         """
-        # print(f'PowerOn: {vmName}')
-        vmid = VmUtility.get_vm_id(client, vmName)
+        vmid = self.get_vm_id(client, vmname)
         if len(vmid) == 0:
+            _LOGGER.error(f'virtual machine {vmname} of id: {vmid} is not found')
             print('vm not found')
         else:
+            _LOGGER.debug(f'Executing command : vim-cmd vmsvc/power.on {int(vmid)}')
             stdin, stdout, stderr = client.exec_command('vim-cmd vmsvc/power.on {}'.format(int(vmid)))
+            _LOGGER.debug(stdout.read().decode())
 
     # Power off VM
-    def power_off_vm(client, vmName):
+    def power_off_vm(self, client, vmname):
         """
 
-        :param vmName: Name of the Virtual Machine
+        :param vmname: Name of the Virtual Machine
         :return:
         """
-        vmid = VmUtility.get_vm_id(client, vmName)
+        vmid = self.get_vm_id(client, vmname)
         print(f'Vmid :{vmid}')
         if len(vmid) == 0:
+            _LOGGER.error(f'virtual machine {vmname} of id: {vmid} is not found')
             print('vm not found')
         else:
+            _LOGGER.debug(f'Executing command : vim-cmd vmsvc/power.off {int(vmid)}')
             stdin, stdout, stderr = client.exec_command('vim-cmd vmsvc/power.off {}'.format(int(vmid)))
+            _LOGGER.debug(stdout.read().decode())
 
     # Function to Read .vmx file
-    def readVMX(client, datastore, vmName):
+    def read_vmx(self, client, vmname):
         """
         
         :param datastore: datastore where Virtual machine is deployed
-        :param vmName: name of the virtual machine
+        :param vmname: name of the virtual machine
         :return: virtual machine's .vmx file data
         """
-        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{datastore}/{vmName}/{vmName}.vmx')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx')
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx')
         return (stdout.read().decode())
 
     #To get datastore of a VM
-    def get_datastore(client, vmName):
+    def get_datastore(self, client, vmname):
         """
         
-        :param vmName: Name of the virtual machine
+        :param vmname: Name of the virtual machine
         :return: Name of the datastore
         """
-        stdin, stdout, stderr = client.exec_command(
-            f'vim-cmd vmsvc/get.config {get_vm_id(client,vmName)} | grep vmPathname -i')
+        stdin, stdout, stderr = client.exec_command(f'vim-cmd vmsvc/get.config { self.get_vm_id(client, vmname)} | grep vmPathname -i')
         r = stdout.read().decode()
         st = re.search('\[(.*?)\]', r)
         if st:
@@ -77,14 +117,23 @@ class VmUtility:
             else:
                 return datastore
 
-    def get_vcpu_core(self,session,vmName):
+    def get_vcpu_core(self,client ,vmname):
         """
 
         :param session:
-        :param vmName: Name of the virtual machine.
+        :param vmname: Name of the virtual machine.
         :return: number of the cpu core for the virtual machine.
         """
-        return 3
+        _LOGGER.debug(f'Eccuting command : cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx | gerp numvcpus -i')
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep ether -i')
+        st = stdout.read().decode()
+        m = re.search('"(.*?)"', st)
+        if m:
+            vcpu = m.group()
+            _LOGGER.debug(f'{vmname} - Number of vcpu :{vcpu}')
+            vcpu = vcpu.strip('"')
+            print(vcpu)
+            return vcpu
 
 
     #Getting the hardware Details
@@ -97,16 +146,27 @@ class VmUtility:
         return '2596'
 
     #To get the vnic number
-    def get_vnic_no(client, vmName):
+    def get_vnic_no(self, client, vmname):
         """
         
-        :param vmName: Name of the Virtual Machine
-        :return: vnic no. for that virtual machine
-        """
-        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{get_datastore(client, vmName)}/{vmName}/test.vmx | grep ether -i')
+        :param client: 
+        :param vmname: Name of the Virtual Machine 
+        :return: 
+        """ 
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep ether -i')
         st = stdout.read().decode()
         m = re.search('[0-9]', st)
         if m:
             number = m.group()
             return number
         return '0'
+
+    def get_vm_memory(self, client, vmname):
+
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep memSize -i')
+        r = stdout.read().decode()
+        m = re.search('"(.*?)"',r)
+        if m:
+            memsize = m.group()
+            memsize = memsize.strip('"')
+            return memsize

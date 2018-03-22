@@ -1,0 +1,21 @@
+{
+  "ESXI65": {
+    "ADAPTER_TYPE":"vmxnet3",
+
+    "VM_NAME" :["TEST-VM"],
+
+    "VM_HARDWARE_VERSION": 13,
+
+    "VM_SYSCONTEXT": 8
+  },
+
+ "ESXI60U2": {
+    "ADAPTER_TYPE":"vmxnet3",
+
+    "VM_NAME" :["TEST-VM"],
+
+    "VM_HARDWARE_VERSION": 11,
+
+    "VM_SYSCONTEXT": 2
+  }
+}

@@ -15,15 +15,17 @@
 """
 
 from __future__ import print_function
-import paramiko
-import re
 from src.util import VmUtil
+import re
+import logging
 
 __author__ = "Somanath"
 
+vmUtil = VmUtil.VmUtility()
+_LOGGER = logging.getLogger(__name__)
 
 class VmTunning :
-
+    
     def __init__(self):
         pass
 
@@ -32,280 +34,322 @@ class VmTunning :
     """
 
     # configration of the latency sensitivity
-    def config_latency_sensitivity(session, vmName):
-        """
-
-        :param vmName: Name of the virtual machine
-        :return:
-        """
-        data = VmUtil.read_vmx(session, vmName)
-        data = data.replace('sched.cpu.latencySensitivity = "normal"', 'sched.cpu.latencySensitivity = "high"')
-        data = data.replace('"', '\\"')
-        stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
-
-    # configure CPU reservation and shares
-
-    # configure Memory reservation and shares
-
-    # configuring the NIC adapter type
-    def config_nic_adapter_type(session, vmName, exist, flag, adapter):
-        """
-
-        :param vmName: Name of the Virtual machine
-        :param exist: adapter that exist already configured with
-        :param flag: bool value
-        :param adapter: Adapter need to be configured
-        :return:
-        """
-        data = VmUtil.read_vmx(session, vmName)
-        if flag:
-            data = data.replace(f'ethernet{VmUtil.get_vnic_no(session,vmName)}.virtualDev = "{exist}"','ethernet{get_vnic_no(session,vmName)}.virtualDev = "{adapter}"')
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+    def config_latency_sensitivity(self, session, vmname): 
+        if self.verify_latency_sensitivity(session, vmname):
+            return True
         else:
-            data += f'ethernet{VmUtil.get_vnic_no(session,vmName)}.virtualDev = "{adapter}"'
+            data = vmUtil.read_vmx(session, vmname)
+            data = data.replace('sched.cpu.latencySensitivity = "normal"', 'sched.cpu.latencySensitivity = "high"')
             data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+            # return False if stderr.read() else True
+            return True
+ 
+    # configuring the NIC adapter type
+    def config_nic_adapter_type(self, session, vmname, adapter):
+        if self.verify_nic_adapter_type(session, vmname, adapter):
+            return True
+        else:
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep virtualDev -i')
+            if stderr.read():
+                return False
+            else:
+                r = stdout.read().decode()
+                st = re.search('"(.*?)"', r)
+                if st:
+                    exist = st.group()
+                    exist = exist.strip('"')
+                    data = data.replace(f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{exist}"','ethernet{get_vnic_no(session,vmname)}.virtualDev = "{adapter}"')
+                    data = data.replace('"', '\\"')
+                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                    return False if stderr.read() else True
+                else:
+                    data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"'
+                    data = data.replace('"', '\\"')
+                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                    return False if stderr.read() else True
 
     # configuring the TX thread allocation
-    def config_tx_thread_allocation(session, vmName, flag):
-        """
-
-        :param vmName: Name of the Virtual Machine
-        :param flag: bool value
-        :return:
-        """
-        data = VmUtil.read_vmx(session, vmName)
-        if flag:
-            data += f'ethernet{VmUtil.get_vnic_no(session,vmName)}.ctxPerDev = "1"'
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+    def config_tx_thread_allocation(self, session, vmname):
+        if self.verify_tx_thread_allocation(session, vmname):
+            return True
         else:
-            data = data.replace(f'ethernet{VmUtil.get_vnic_no(session,vmName)}.ctxPerDev = "0"','ethernet{get_vnic_no(session,vmName)}.ctxPerDev = "1"')
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
+            if stderr.read():
+                return False
+            else:
+                r = stdout.read().decode()
+                flag = re.search('"(.*?)"', r)
+                if flag:
+                    data = data.replace(f'ethernet{vmUtil.get_vnic_no(session,vmname)}.ctxPerDev = "0"','ethernet{get_vnic_no(session,vmname)}.ctxPerDev = "1"')
+                    data = data.replace('"', '\\"')
+                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                    return False if stderr.read() else True
+                else:
+                    data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.ctxPerDev = "1"'
+                    data = data.replace('"', '\\"')
+                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                    return False if stderr.read() else True
 
     # configuration SysContext
-    def config_sys_context(session, vmName, old, vcpu, flag):
-        """
-
-        :param vmName: Name of the virtual machine
-        :param old: Thread that is already configured
-        :param vcpu: Thread(s) need to be configured
-        :param flag: bool value
-        :return: bool value
-        """
-        data = VmUtil.read_vmx(session, vmName)
-        if flag:
-            data = data.replace(f'sched.cpu.latencySensitivity.sysContexts = "{old}"',f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"')
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+    def config_sys_context(self, session, vmname, vcpu):
+        if self.verify_sys_context(session, vmname, vcpu):
             return True
         else:
-            data += f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"'
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
-            return True
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                cpu = st.group()
+                cpu = cpu.strip('"')
+                data = data.replace(f'sched.cpu.latencySensitivity.sysContexts = "{cpu}"', f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
+            else:
+                data += f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"'
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
 
     # configuration of cpu reservation
-    def config_cpu_reservation(self,session, vmName,old, max_size, flag):
-        """
-
-        :param session:
-        :param vmName: Name of the Virtual machine
-        :param old: reservation that exist already
-        :param max_size: maximum reservation can be done
-        :param flag: bool value
-        :return:
-        """
-        data = VmUtil.read_vmx(session, vmName)
-        if flag:
-            data = data.replace(f'sched.cpu.min = "{old}"', f'sched.cpu.min = "{max_size}"')
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+    def config_cpu_reservation(self, session, vmname):
+        if self.verify_cpu_reservation(session,vmname):
             return True
         else:
-            data += f'sched.cpu.min = "{max_size}"'
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
-            return True
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            # max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.cpu_speed(session))
+            max_size = vmUtil.get_vcpu_core(session, vmname)
+            print(max_size)
+            if st:
+                old = st.group()
+                old = old.strip('"')
+                data = data.replace(f'sched.cpu.min = "{old}"', f'sched.cpu.min = "{max_size}"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
+            else:
+                data += f'sched.cpu.min = "{max_size}"'
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
 
     # configuration cpu share
-    def config_cpu_share(self,session,vmName,old,flag):
-        data = VmUtil.read_vmx(session, vmName)
-        if flag:
-            data = data.replace(f'sched.cpu.shares = "{old}"','sched.cpu.shares = "high"')
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+    def config_cpu_share(self,session, vmname, old='', flag=False):
+        if self.verify_cpu_share(session, vmname):
             return True
         else:
-            data += 'sched.cpu.shares = "high"'
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
-            return True
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.shares -i')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                old = st.group()
+                old = old.strip('"')
+                data = data.replace(f'sched.cpu.shares = "{old}"','sched.cpu.shares = "high"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
+            else:
+                data += 'sched.cpu.shares = "high"'
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
 
-    #configuration on Memory share
-    def config_mem_share(self,session,vmName,old,flag):
-        data = VmUtil.read_vmx(session, vmName)
-        if flag:
-            data = data.replace(f'sched.mem.shares = "{old}"','sched.mem.shares = "high"')
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
+    # configuration on Memory share
+    def config_mem_share(self, session, vmname):
+        if self.verify_mem_share(session, vmname):
             return True
         else:
-            data += 'sched.mem.shares = "high"'
-            data = data.replace('"', '\\"')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx')
-            return True
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.shares -i')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                old = st.group()
+                old = old.strip('"')
+                data = data.replace(f'sched.mem.shares = "{old}"','sched.mem.shares = "high"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
+            else:
+                data += 'sched.mem.shares = "high"'
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
 
-    #configuration on Memory reservation
+    # configuration on Memory reservation
+    def config_mem_reservation(self, session, vmname):
+        if self.verify_mem_reservation(session,vmname):
+            return True
+        else:
+            data = vmUtil.read_vmx(session, vmname)
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                size = st.group()
+                size = size.strip('"')
+                data = data.replace(f'sched.mem.minSize = "{size}"',f'sched.mem.minSize = "{vmUtil.get_vm_memory(session, vmname)}"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+
+
+
+
+    #configuring Numa Affinity
+    def config_numa_affinity(self, session, vmname, vmnic):
+        if self.verify_numa_affinity(session, vmname, vmnic):
+            return True
+        else:
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                old = st.group()
+                old = old.strip('"')
+                numa = vmUtil.get_numa_node(session, vmname)
+                data = data.replace(f'numa.nodeAffinity = "{old}"', f'numa.nodeAffinity = "{numa}"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
+            else:
+                data += f'numa.nodeAffinity = "{vmUtil.get_numa_node(session, vmname)}"'
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
+
+
 
     """
         verification  function for virtual machine optimization 
     """
 
     # latency Sensitivity
-    def verify_latency_sensitivity(session, vmName):
-        """
-
-        :param vmName: Name of the Virtual machine
-        :return: bool value
-        """
-        vmid = VmUtil.get_vm_id(session, vmName)
+    def verify_latency_sensitivity(self, session, vmname): 
+        vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx | grep latency')
-            r = stdout.read().decode()
-            st = re.search('"(.*?)"', r)
-            if st:
-                status = st.group()
-                return status.strip('"').strip('"')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
+            if stderr.read():
+                return False
+            else:
+                r = stdout.read().decode()
+                _LOGGER.debug(f'{r}')
+                st = re.search('"(.*?)"', r)
+                if st:
+                    status = st.group()
+                    return True if status.strip('"') == 'high' else False
+                else:
+                    return False
 
     # verification of CPU reservation
-    def verify_cpu_reservation(self,session,vmName):
-        """
-
-        :param session:
-        :param vmName: Name of the virtual machine
-        :return: True if reservation is set to maximum
-        """
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx | grep sched.cpu.min -i')
+    def verify_cpu_reservation(self, session, vmname):
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i ')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i')
         r = stdout.read().decode()
+        _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
-        max_size = int(VmTunning.get_vcpu_core(session, vmName)) * int(VmTunning.cpu_speed(session))
+        # max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.cpu_speed(session))
+        max_size = 11
         if st:
             status = st.group()
-            if int(status.strip('"')) == max_size:
-                return True
-            else:
-                VmTunning.config_cpu_reservation(session, vmName, status.strip('"'), max_size, True)
-        else:
-            VmTunning.config_cpu_reservation(session, vmName, '', max_size , False)
+            return True if int(status.strip('"')) == max_size else False
 
     # verification of CPU share
-    def verify_cpu_share(self,session,vmName):
-        """
-
-        :param session:
-        :param vmName: Name of the virtual machine
-        :return: True if CPU share is set to high
-        """
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx | grep sched.cpu.shares -i')
+    def verify_cpu_share(self,session,vmname):
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.shares -i ')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.shares -i')
         r = stdout.read().decode()
+        _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
         if st:
             status = st.group()
-            if status.strip('"') == 'high':
-                return True
-            else:
-                VmTunning.config_cpu_share(session, vmName, status.strip('"'), True)
-        else:
-            VmTunning.config_cpu_share(session, vmName, '', False)
+            return True if status.strip('"') == 'high' else False
 
     # verification of Memory shares
-    def verify_mem_share(self, session, vmName):
-        """
-
-        :param session:
-        :param vmName: Name of the virtual machine
-        :return: True if Memory share is set to high
-        """
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx | grep sched.mem.shares -i')
+    def verify_mem_share(self, session, vmname):
+        _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.shares -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.shares -i')
         r = stdout.read().decode()
+        _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
         if st:
             status = st.group()
-            if status.strip('"') == 'high':
-                return True
-            else:
-                VmTunning.config_mem_share(session, vmName, status.strip('"'), True)
-        else:
-            VmTunning.config_mem_share(session, vmName, '', False)
+            return True if status.strip('"') == 'high' else False
 
     # verification of Memory reservation
-    def verify_mem_reservation(self, session, vmName ):
-        """
-
-        :param session:
-        :param vmName: Name of the virtual machine
-        :return: True if Memory reservation is set to maximum
-        """
-        pass
-
-    # verification of the Virtual NIC adapter
-    def verify_nic_adapter_type(session, vmName, adapter):
-        """
-
-        :param vmName: Name of the Virtual machine
-        :param adapter: Adapter to be configured
-        :return: True if configured
-        """
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx | grep virtualDev -i')
+    def verify_mem_reservation(self, session, vmname ):
+        _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
         r = stdout.read().decode()
+        _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
         if st:
-            apapter_type = st.group()
-            if (apapter_type.strip('"')) == adapter:
-                return True
-            else:
-                VmTunning.config_nic_adapter_type(session, vmName, apapter_type, True, adapter)
+            status = st.group()
+            return True if status.strip('"') == vmUtil.get_vm_memory(session, vmname) else False
+
+    # verification of the Virtual NIC adapter
+    def verify_nic_adapter_type(self, session, vmname, adapter):
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep virtualDev -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep virtualDev -i')
+        if stderr.read():
+            return False
         else:
-            VmTunning.config_nic_adapter_type(session, vmName, "", False, adapter)
+            r = stdout.read().decode()
+            _LOGGER.debug(f'{r}')
+            st = re.search('"(.*?)"', r)
+            if st:
+                apapter_type = st.group()
+                return True if (apapter_type.strip('"')) == adapter else False
+            else:
+                return False
 
     # verification of the Tx thread allocation is enable
-    def verify_tx_thread_allocation(session, vmName):
-        """
-
-        :param vmName: Name of the Virtual Machine
-        :return: True if configured
-        """
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx | grep ctxPerDev -i')
+    def verify_tx_thread_allocation(self, session, vmname):
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
         r = stdout.read().decode()
+        _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
         if st:
             status = st.group()
             return True if int(status.strip('"')) == 1 else False
         else:
-            VmTunning.config_tx_thread_allocation(session, vmName, True)
+            return False
 
     # verification of sysContext
-    def verify_sys_context(session, vmName, vcpu):
-        """
-
-        :param vmName: Name of the Virtual Machine
-        :param vcpu: number of thread(s) to be pinned
-        :return: True if configured
-        """
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{VmUtil.get_datastore(session, vmName)}/{vmName}/test.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
+    def verify_sys_context(self, session, vmname, vcpu):
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
         r = stdout.read().decode()
-        print(r)
+        _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
         if st:
             cpu = st.group()
-            if int(cpu.strip('"')) == vcpu:
-                return True
-            else:
-                return VmTunning.config_sys_context(session, vmName, int(cpu), vcpu, True)
-        else:
-            return VmTunning.config_sys_context(session, vmName, 0, vcpu, False)
+            return True if int(cpu.strip('"')) == vcpu else False
 
     # verification of NUMA affinity
+    def verify_numa_affinity(self, session, vmname, vmnic):
+        _LOGGER.debug(f'Executing command : vsish -e get /net/pNics/{vmnic}/properties | grep NUMA ')
+        stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
+        r = stdout.read().decode()
+        _LOGGER.debug(f'{r}')
+        st = re.search('"(.*?)"', r)
+        if st:
+            numa = st.group()
+            old = vmUtil.get_numa_node(session, vmname)
+            return True if old.strip('"') == numa.strip('"') else False
+        else:
+            return False
+
+
+# _LOGGER.debug(f'Executing command : ')

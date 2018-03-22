@@ -1,38 +1,201 @@
 from src.core.vnf import VmTuning
 from src.util import HostSession
+from src.util import VmUtil
+from src.core import Host
 import json
+import logging
 
-datastore = 'Datastore1'
-vmName = 'TEST-VM'
+_LOGGER = logging.getLogger(__name__)
 
+
+def vm_config1():
+    hosts = json.load(open(r'env_conf\host.json'))
+    vm_conf = json.load(open(r'env_conf\vm.json'))
+    vmTune = VmTuning.VmTunning()
+    vmUtil = VmUtil.VmUtility()
+    conf_host = Host.HostConfig()
+    for host in hosts['HOST_DETAILS']:
+        print(host['HOST'], host['USER'], host['PASSWORD'])
+        client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
+        print(client)
+        # vms = vmUtil.get_vm_list(client)
+        temp_vms = vm_conf['ESXI65']['VM_NAME']
+        ver = conf_host.get_host_version(client)
+        _NICS = host['NICS'].split(',')
+        for vm in temp_vms:
+        # for vm in vms:
+            print(vm)
+            _LOGGER.info(f'virtual machine : {vm}')
+            """
+                ESXI VERSION 6.5
+            """
+            if ver.find('6.5') > -1:
+                param = vm_conf['ESXI65']
+                print(param)
+                _LOGGER.info('Verifying optimization on virtual machine')
+
+                _LOGGER.info(f'checking Latency sensitivity is set to "high":\
+                {vmTune.verify_latency_sensitivity(client,vm)}')
+                status = vmTune.config_latency_sensitivity(client, vm)
+                if status:
+                    _LOGGER.info(f'Setting latency sensitivity to high : {status}')
+                else:
+                    _LOGGER.error(f'Setting latency sensitivity to high :{status}')
+
+                _LOGGER.info(f'checking CPU reservation : {vmTune.verify_cpu_reservation(client,vm)}')
+                status = vmTune.config_cpu_reservation(client, vm)
+                if status:
+                    _LOGGER.info(f'changing CPU reservation :{status}')
+                else:
+                    _LOGGER.error(f'changing CPU reservation :{status}')
+
+                _LOGGER.info(f'checking CPU share :{vmTune.verify_cpu_share(client, vm)}')
+                status = vmTune.config_cpu_share(client, vm)
+                if status:
+                    _LOGGER.info(f'changing CPU share : {status}')
+                else:
+                    _LOGGER.error(f'chaging CPU share : {status}')
+
+                _LOGGER.info(f'checking Memory reservation : {vmTune.verify_mem_reservation(client,vm)}')
+                status = vmTune.config_mem_reservation(client, vm)
+                if status:
+                    _LOGGER.info(f'changing Memory reservation :{status}')
+                else:
+                    _LOGGER.error(f'changing Memory reservation :{status}')
+
+                _LOGGER.info(f'checking Memory share :{vmTune.verify_mem_share(client, vm)}')
+                status = vmTune.config_mem_share(client, vm)
+                if status:
+                    _LOGGER.info(f'changing Memory share : {status}')
+                else:
+                    _LOGGER.error(f'chaging Memory share : {status}')
+
+                _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])}')
+                status = vmTune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])
+                if status:
+                    _LOGGER.info(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
+                else:
+                    _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
+
+                _LOGGER.info(f'checking the TX thread Allocation : {vmTune.verify_tx_thread_allocation(client, vm)}')
+                status = vmTune.config_tx_thread_allocation(client, vm)
+                if status:
+                    _LOGGER.info(f'changing the TX thread allocation : {status}')
+                else:
+                    _LOGGER.error(f'changing the TX thread allocation : {status}')
+
+                _LOGGER.info(f'Checking the SysContext : {vmTune.verify_sys_context(client,vm,param["VM_SYSCONTEXT"])}')
+                status = vmTune.config_sys_context(client,vm,param["VM_SYSCONTEXT"])
+                if status:
+                    _LOGGER.info(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
+                else:
+                    _LOGGER.error(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
+
+                for nic in _NICS:
+                    _LOGGER.info(f'Checking the NUMA affinity value for {nic} : {vmTune.verify_numa_affinity(client,vm, nic)}')
+                    status = vmTune.config_numa_affinity(client, vm, nic)
+                    if status:
+                        _LOGGER.info(f'changing NUMA value for {nic}:{status}')
+                    else:
+                        _LOGGER.error(f'changing NUMA value for {nic}:{status}')
+            else:
+                """
+                    ESXI VERSION 6.0 U2
+                """
+                param = vm_conf['ESXI60U2']
+                _LOGGER.info('Verifying optimization on virtual machine')
+
+                _LOGGER.info(f'checking Latency sensitivity is set to "high":{vmTune.verify_latency_sensitivity()}')
+                status = vmTune.config_latency_sensitivity(client, vm)
+                if status:
+                    _LOGGER.info(f'Setting latency sensitivity to high : {status}')
+                else:
+                    _LOGGER.error(f'Setting latency sensitivity to high :{status}')
+                    return False
+
+                _LOGGER.info(f'checking CPU reservation : {vmTune.verify_cpu_reservation(client,vm)}')
+                status = vmTune.config_cpu_reservation(client, vm)
+                if status:
+                    _LOGGER.info(f'changing CPU reservation :{status}')
+                else:
+                    _LOGGER.error(f'changing CPU reservation :{status}')
+
+                _LOGGER.info(f'checking CPU share :{vmTune.verify_cpu_share(client, vm)}')
+                status = vmTune.config_cpu_share(client, vm)
+                if status:
+                    _LOGGER.info(f'changing CPU share : {status}')
+                else:
+                    _LOGGER.error(f'chaging CPU share : {status}')
+
+                _LOGGER.info(f'checking Memory reservation : {vmTune.verify_mem_reservation(client,vm)}')
+                status = vmTune.config_mem_reservation(client, vm)
+                if status:
+                    _LOGGER.info(f'changing Memory reservation :{status}')
+                else:
+                    _LOGGER.error(f'changing Memory reservation :{status}')
+
+                _LOGGER.info(f'checking Memory share :{vmTune.verify_mem_share(client, vm)}')
+                status = vmTune.config_mem_share(client, vm)
+                if status:
+                    _LOGGER.info(f'changing Memory share : {status}')
+                else:
+                    _LOGGER.error(f'chaging Memory share : {status}')
+
+                _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])}')
+                status = vmTune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])
+                if status:
+                    _LOGGER.info(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
+                else:
+                    _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
+
+                _LOGGER.info(f'checking the TX thread Allocation : {vmTune.verify_tx_thread_allocation(client, vm)}')
+                status = vmTune.config_tx_thread_allocation(client, vm)
+                if status:
+                    _LOGGER.info(f'changing the TX thread allocation : {status}')
+                else:
+                    _LOGGER.error(f'changing the TX thread allocation : {status}')
+
+                _LOGGER.info(f'Checking the SysContext : {vmTune.verify_sys_context(client,vm,param["VM_SYSCONTEXT"])}')
+                status = vmTune.config_sys_context(client, vm, param["VM_SYSCONTEXT"])
+                if status:
+                    _LOGGER.info(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
+                else:
+                    _LOGGER.error(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
+
+                for nic in _NICS:
+                    _LOGGER.info(
+                        f'Checking the NUMA affinity value for {nic} : {vmTune.verify_numa_affinity(client,vm, nic)}')
+                    status = vmTune.config_numa_affinity(client, vm, nic)
+                    if status:
+                        _LOGGER.info(f'changing NUMA value for {nic}:{status}')
+                    else:
+                        _LOGGER.error(f'changing NUMA value for {nic}:{status}')
+
+
+"""
 def vm_config():
     hosts = json.load(open(r'..\env_conf\host.json'))
+    vms = json.load(open(r'..\env_conf\vm.json'))
     for host in hosts['HOST_DETAILS']:
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         print(host['HOST'])
         print(f'Latency Sensitivity set to High and Reserved :{VmTuning.verify_latencySensitivity(client)}')
         # if VmTuning.verify_latencySensitivity(client) == False:
-        """
-               Config need to be done.
-        """
-        print(f'Vmnic Adapter type (vmxnet):{VmTuning.vnic_adapter_type(client,datastore,vmName)}')
-        print(f'vNIC TX thread allocation :{VmTuning.verify_vnic_tx_thread(client,datastore,vmName)}')
-        if VmTuning.verify_vnic_tx_thread(client,datastore,vmName) == False:
-            """
-            config for TX thread Allocation
-            """
-        print(f'Numa Affinity :{VmTuning.verify_numa_NodeAffinity(client,datastore,vmName)}')
-        print(f'system context : {VmTuning.verify_SysContext(client,datastore,vmName)}')
+        print(f'Vmnic Adapter type (vmxnet):{VmTuning.vnic_adapter_type(client,datastore,vmname)}')
+        print(f'vNIC TX thread allocation :{VmTuning.verify_vnic_tx_thread(client,datastore,vmname)}')
+        if VmTuning.verify_vnic_tx_thread(client,datastore,vmname) == False: 
+        print(f'Numa Affinity :{VmTuning.verify_numa_NodeAffinity(client,datastore,vmname)}')
+        print(f'system context : {VmTuning.verify_SysContext(client,datastore,vmname)}')
 
         print(f'Vm config is Completed')
 
-        print('Latency Sensitivity Verification:{}'.format(VmTuning.verify_latency_sensitivity(client, vmName) == 'high'))
-        if VmTuning.verify_latency_sensitivity(client, vmName) != 'high':
-            VmTuning.config_latency_sensitivity(client, vmName)
-        print('verify_tx_thread_allocation:{}'.format(VmTuning.verify_tx_thread_allocation(client, vmName)))
-        if VmTuning.verify_tx_thread_allocation(client, vmName) == False:
-            VmTuning.config_tx_thread_allocation(client, vmName, False)
-        print('verify_sys_context : {}'.format(VmTuning.verify_sys_context(client, vmName, 3)))
+        print('Latency Sensitivity Verification:{}'.format(VmTuning.verify_latency_sensitivity(client, vmname) == 'high'))
+        if VmTuning.verify_latency_sensitivity(client, vmname) != 'high':
+            VmTuning.config_latency_sensitivity(client, vmname)
+        print('verify_tx_thread_allocation:{}'.format(VmTuning.verify_tx_thread_allocation(client, vmname)))
+        if VmTuning.verify_tx_thread_allocation(client, vmname) == False:
+            VmTuning.config_tx_thread_allocation(client, vmname, False)
+        print('verify_sys_context : {}'.format(VmTuning.verify_sys_context(client, vmname, 3)))
         client.close()
-
-vm_config()
+"""
+# vm_config1()
