@@ -41,6 +41,7 @@ class VmTunning :
             data = vmUtil.read_vmx(session, vmname)
             data = data.replace('sched.cpu.latencySensitivity = "normal"', 'sched.cpu.latencySensitivity = "high"')
             data = data.replace('"', '\\"')
+            # print( data )
             stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
             # return False if stderr.read() else True
             return True
@@ -51,24 +52,21 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep virtualDev -i')
-            if stderr.read():
-                return False
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev -i')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                exist = st.group()
+                exist = exist.strip('"')
+                data = data.replace(f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{exist}"',f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
             else:
-                r = stdout.read().decode()
-                st = re.search('"(.*?)"', r)
-                if st:
-                    exist = st.group()
-                    exist = exist.strip('"')
-                    data = data.replace(f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{exist}"','ethernet{get_vnic_no(session,vmname)}.virtualDev = "{adapter}"')
-                    data = data.replace('"', '\\"')
-                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
-                    return False if stderr.read() else True
-                else:
-                    data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"'
-                    data = data.replace('"', '\\"')
-                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
-                    return False if stderr.read() else True
+                data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"'
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
 
     # configuring the TX thread allocation
     def config_tx_thread_allocation(self, session, vmname):
@@ -76,22 +74,24 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
-            if stderr.read():
-                return False
-            else:
-                r = stdout.read().decode()
-                flag = re.search('"(.*?)"', r)
-                if flag:
-                    data = data.replace(f'ethernet{vmUtil.get_vnic_no(session,vmname)}.ctxPerDev = "0"','ethernet{get_vnic_no(session,vmname)}.ctxPerDev = "1"')
-                    data = data.replace('"', '\\"')
-                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
-                    return False if stderr.read() else True
+            for vnic in set(vmUtil.get_vnic_no(session, vmname)):
+                stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
+                if stderr.read():
+                    return False
                 else:
-                    data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.ctxPerDev = "1"'
-                    data = data.replace('"', '\\"')
-                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
-                    return False if stderr.read() else True
+                    r = stdout.read().decode()
+                    flag = re.search('"(.*?)"', r)
+                    if flag:
+                        data = data.replace(f'ethernet{vnic}.ctxPerDev = "0"',f'ethernet{vnic}.ctxPerDev = "1"')
+                        data = data.replace('"', '\\"')
+                        stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vnic}/{vmname}/test.vmx')
+                        return False if stderr.read() else True
+                    else:
+                        data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.ctxPerDev = "1"'
+                        data = data.replace('"', '\\"')
+                        stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vnic}/{vmname}/test.vmx')
+                        return False if stderr.read() else True
+
 
     # configuration SysContext
     def config_sys_context(self, session, vmname, vcpu):
@@ -112,7 +112,9 @@ class VmTunning :
             else:
                 data += f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"'
                 data = data.replace('"', '\\"')
+                vmUtil.power_off_vm(session, vmname)
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                vmUtil.power_on_vm(session, vmname)
                 return False if stderr.read() else True
 
     # configuration of cpu reservation
@@ -124,9 +126,7 @@ class VmTunning :
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
-            # max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.cpu_speed(session))
-            max_size = vmUtil.get_vcpu_core(session, vmname)
-            print(max_size)
+            max_size = vmUtil.get_vcpu_core(session, vmname)* vmUtil.get_cpu_speed(session)
             if st:
                 old = st.group()
                 old = old.strip('"')
@@ -141,7 +141,7 @@ class VmTunning :
                 return False if stderr.read() else True
 
     # configuration cpu share
-    def config_cpu_share(self,session, vmname, old='', flag=False):
+    def config_cpu_share(self, session, vmname):
         if self.verify_cpu_share(session, vmname):
             return True
         else:
@@ -200,6 +200,7 @@ class VmTunning :
                 data = data.replace(f'sched.mem.minSize = "{size}"',f'sched.mem.minSize = "{vmUtil.get_vm_memory(session, vmname)}"')
                 data = data.replace('"', '\\"')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
 
 
 
@@ -210,22 +211,26 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
-            r = stdout.read().decode()
-            st = re.search('"(.*?)"', r)
-            if st:
-                old = st.group()
-                old = old.strip('"')
-                numa = vmUtil.get_numa_node(session, vmname)
-                data = data.replace(f'numa.nodeAffinity = "{old}"', f'numa.nodeAffinity = "{numa}"')
-                data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
-                return False if stderr.read() else True
-            else:
+            e = vmUtil.get_numa_node(session, vmname)
+            if e == '' or e == " ":
                 data += f'numa.nodeAffinity = "{vmUtil.get_numa_node(session, vmname)}"'
                 data = data.replace('"', '\\"')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
                 return False if stderr.read() else True
+            else:
+                stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
+                r = stdout.read().decode()
+                st = re.search('\d', r)
+                if st:
+                    numa = st.group()
+                    print(f"config numa aff  to :{numa}")
+                    old = vmUtil.get_numa_node(session, vmname)
+                    data = data.replace(f'numa.nodeAffinity = "{old}"', f'numa.nodeAffinity = "{numa}"')
+                    data = data.replace('"', '\\"')
+                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                    return False if stderr.read() else True
+                else:
+                    _LOGGER.error(f'unable to configure node affinity for vmnic : {vmnic}')
 
 
 
@@ -238,18 +243,16 @@ class VmTunning :
         vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
             _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
+            # print(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
-            if stderr.read():
-                return False
+            r = stdout.read().decode()
+            _LOGGER.debug(f'{r}')
+            st = re.search('"(.*?)"', r)
+            if st:
+                status = st.group()
+                return True if status.strip('"') == 'high' else False
             else:
-                r = stdout.read().decode()
-                _LOGGER.debug(f'{r}')
-                st = re.search('"(.*?)"', r)
-                if st:
-                    status = st.group()
-                    return True if status.strip('"') == 'high' else False
-                else:
-                    return False
+                return False
 
     # verification of CPU reservation
     def verify_cpu_reservation(self, session, vmname):
@@ -299,32 +302,32 @@ class VmTunning :
 
     # verification of the Virtual NIC adapter
     def verify_nic_adapter_type(self, session, vmname, adapter):
-        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep virtualDev -i')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep virtualDev -i')
-        if stderr.read():
-            return False
-        else:
+        for v_nic in set(vmUtil.get_vnic_no(session, vmname)):
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ethernet{v_nic}.virtualDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx |grep ethernet{v_nic}.virtualDev -i')
             r = stdout.read().decode()
-            _LOGGER.debug(f'{r}')
+            _LOGGER.info(f'networtk adapter : {r}')
             st = re.search('"(.*?)"', r)
             if st:
-                apapter_type = st.group()
-                return True if (apapter_type.strip('"')) == adapter else False
+                adapter_type = st.group()
+                # print(f'adapeter in print : {adapter_type}')
+                return True if (adapter_type.strip('"')) == adapter else False
             else:
                 return False
 
     # verification of the Tx thread allocation is enable
     def verify_tx_thread_allocation(self, session, vmname):
-        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
-        r = stdout.read().decode()
-        _LOGGER.debug(f'{r}')
-        st = re.search('"(.*?)"', r)
-        if st:
-            status = st.group()
-            return True if int(status.strip('"')) == 1 else False
-        else:
-            return False
+        for vnic in set(vmUtil.get_datastore(session, vmname)):
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ctxPerDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ctxPerDev -i')
+            r = stdout.read().decode()
+            _LOGGER.debug(f'{r}')
+            st = re.search('"(.*?)"', r)
+            if st:
+                status = st.group()
+                return True if int(status.strip('"')) == 1 else False
+            else:
+                return False
 
     # verification of sysContext
     def verify_sys_context(self, session, vmname, vcpu):
@@ -342,12 +345,13 @@ class VmTunning :
         _LOGGER.debug(f'Executing command : vsish -e get /net/pNics/{vmnic}/properties | grep NUMA ')
         stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
         r = stdout.read().decode()
-        _LOGGER.debug(f'{r}')
-        st = re.search('"(.*?)"', r)
+        _LOGGER.debug(f'numa affinity to set : {r}')
+        st = re.search('\d', r)
         if st:
             numa = st.group()
             old = vmUtil.get_numa_node(session, vmname)
-            return True if old.strip('"') == numa.strip('"') else False
+            print(f'True value : {numa} \n exist value : {old}')
+            return True if old == numa else False
         else:
             return False
 

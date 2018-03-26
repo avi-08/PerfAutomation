@@ -1,14 +1,14 @@
 {
 "HOST_DETAILS": [
     {
-        "HOST": "10.107.182.18",
+        "HOST": "10.110.209.156",
         "USER": "root",
         "PASSWORD": "ca$hc0w",
         "NICS": "vmnic0,vmnic1"
     },
 
     {
-        "HOST": "10.107.182.19",
+        "HOST": "10.110.209.156",
         "USER": "root",
         "PASSWORD": "ca$hc0w",
         "NICS": "vmnic4,vmnic5"
@@ -35,11 +35,7 @@
     "NIC_BUFFER_SIZE": {
         "RX": 2048,
         "TX": 4096
-    },
-
-    "VM_HARDWARE_VERSION": 13,
-
-    "VM_SYSCONTEXT": 8
+    }
 },
 
 "ESXI60U2": {

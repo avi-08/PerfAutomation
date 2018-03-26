@@ -8,32 +8,31 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 
-def vm_config1():
+def vm_config(keep_defaults=False):
     hosts = json.load(open(r'env_conf\host.json'))
     vm_conf = json.load(open(r'env_conf\vm.json'))
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
     conf_host = Host.HostConfig()
     for host in hosts['HOST_DETAILS']:
-        print(host['HOST'], host['USER'], host['PASSWORD'])
+        # print(host['HOST'], host['USER'], host['PASSWORD'])
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
-        print(client)
+        # print(client)
         # vms = vmUtil.get_vm_list(client)
         temp_vms = vm_conf['ESXI65']['VM_NAME']
         ver = conf_host.get_host_version(client)
         _NICS = host['NICS'].split(',')
+        _LOGGER.info('Verifying optimization on virtual machine')
         for vm in temp_vms:
         # for vm in vms:
-            print(vm)
-            _LOGGER.info(f'virtual machine : {vm}')
             """
                 ESXI VERSION 6.5
             """
             if ver.find('6.5') > -1:
                 param = vm_conf['ESXI65']
-                print(param)
-                _LOGGER.info('Verifying optimization on virtual machine')
-
+                _LOGGER.info(f'HOST VERSION : ESXI 6.5 ')
+                _LOGGER.info(f'virtual machine : {vm}')
+                vmUtil.power_off_vm(client, vm)
                 _LOGGER.info(f'checking Latency sensitivity is set to "high":\
                 {vmTune.verify_latency_sensitivity(client,vm)}')
                 status = vmTune.config_latency_sensitivity(client, vm)
@@ -98,13 +97,15 @@ def vm_config1():
                         _LOGGER.info(f'changing NUMA value for {nic}:{status}')
                     else:
                         _LOGGER.error(f'changing NUMA value for {nic}:{status}')
+                vmUtil.power_on_vm(client, vm)
             else:
                 """
                     ESXI VERSION 6.0 U2
                 """
                 param = vm_conf['ESXI60U2']
+                _LOGGER.info(f'HOST VETSION : ESXI 6.0 U2')
                 _LOGGER.info('Verifying optimization on virtual machine')
-
+                vmUtil.power_off_vm(client, vm)
                 _LOGGER.info(f'checking Latency sensitivity is set to "high":{vmTune.verify_latency_sensitivity()}')
                 status = vmTune.config_latency_sensitivity(client, vm)
                 if status:
@@ -162,6 +163,7 @@ def vm_config1():
                 else:
                     _LOGGER.error(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
 
+                """
                 for nic in _NICS:
                     _LOGGER.info(
                         f'Checking the NUMA affinity value for {nic} : {vmTune.verify_numa_affinity(client,vm, nic)}')
@@ -170,7 +172,9 @@ def vm_config1():
                         _LOGGER.info(f'changing NUMA value for {nic}:{status}')
                     else:
                         _LOGGER.error(f'changing NUMA value for {nic}:{status}')
-
+                """
+                vmUtil.power_on_vm(client, vm)
+        HostSession.HostSession().disconnect(client)
 
 """
 def vm_config():

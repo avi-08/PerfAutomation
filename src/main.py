@@ -7,11 +7,13 @@ import sys
 import logging
 import os
 import argparse
-import json
+import threading
 
 from src.util import HostSession, LogUtil
 from src.env_conf import settings
 from src.tests import host_config
+from src.tests import vm_config
+from src.core.traffic_generator import Trex
 
 
 _CURR_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -104,6 +106,11 @@ def main():
         configure_logging(settings.getValue('VERBOSITY'))
 
     host_config.host_config(settings)
+    # vm_config.vm_config(settings)
+    #vm_config.vm_config(settings)
+    t1 = threading.Thread(target=Trex.trafficGen())
+    t1.start()
+    t1.join()
     """
     hosts = json.load(open(r'env_conf\host.json'))
     for host in hosts['HOST_DETAILS']:
@@ -113,7 +120,7 @@ def main():
             print(stdout.readline()[:-2].split(':')[1][1:].strip('"'))
             print("{0}".format(True if [x.strip().strip('"') for x in stdout.readline().strip()[:-1].split(':')].__contains__('ixgben') else False))
             #for line in stdout:
-             #   print(line.strip('\n'))
+             #   print(line.strip(''))
             HostSession.HostSession().disconnect(sess)
         else:
             _LOGGER.error("Unable to connect.")
