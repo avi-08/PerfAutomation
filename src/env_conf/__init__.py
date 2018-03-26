@@ -80,13 +80,11 @@ class Settings:
     def load_from_file(self, path):
         """Update ``settings`` with values found in module at ``path``.
         """
-        import imp
-
-        custom_settings = imp.load_source('custom_settings', path)
-
-        for key in dir(custom_settings):
-            if getattr(custom_settings, key) is not None:
-                setattr(self, key, getattr(custom_settings, key))
+        import json
+        data = json.load(open(path))
+        if data.items():
+            for key in data:
+                setattr(self, key, data[key])
 
     def load_from_dir(self, dir_path):
         """Update ``settings`` with contents of the .conf files at ``path``.
@@ -101,7 +99,7 @@ class Settings:
 
         :returns: None
         """
-        regex = re.compile("^([a-z]?).*.conf$")
+        regex = re.compile("^([a-z]?).*.json$")
 
         # get full file path to all files & dirs in dir_path
         file_paths = os.listdir(dir_path)

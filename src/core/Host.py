@@ -1,6 +1,9 @@
 """
     The class HostConfig provides functions to verify and apply various host-level optimizations for different ESXi host
-    versions. The functions return True for successful application/verification of optimizations, otherwise return False
+    versions. The functions return a tuple (success : bool, message : str) for successful application/verification of
+    optimizations, otherwise return False and the error message. Therefore, if the configuration is successfully applied
+    , then the function will return (True, command_output) else (False, command_error)
+
     A unit_test() function has been defined for testing all  defined functions
 #######################################################################################################################
 # Note: Some host optimizations (like Turbo Boost, Power management) cannot be performed programmatically.
@@ -9,8 +12,12 @@
 """
 
 import re
+import logging
 
 __author__ = "Avi Sharma"
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class HostConfig:
@@ -24,7 +31,9 @@ class HostConfig:
         :param client: paramiko SSHClient object
         :return: (str) ESXi host version and build
         """
-        stdin, stdout, stderr = client.exec_command('vmware -v')
+        command = 'vmware -v'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
         return stdout.read().decode()
 
     def is_hyperthreading_enabled(self, client):
@@ -33,20 +42,24 @@ class HostConfig:
         :param client: paramiko SSHClient object
         :return: (bool)True if hyper threading is enabled else False
         """
-        stdin, stdout, stderr = client.exec_command('esxcli system settings kernel list | grep hyperthreading')
-        return True if re.sub(' +', ' ', stdout.read().decode().strip()).split(' ')[-3].upper() == 'TRUE' else False
+        command = 'esxcli system settings kernel list | grep hyperthreading'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        return True, output if re.sub(' +', ' ', output.strip()).split(' ')[-3].upper() == 'TRUE' else False, output
 
     def config_hyperthreading(self, client, enable):
         """
         Configure hyper threading
         :param client: paramiko SSHClient object
         :param enable: (bool) specifying whether to enable or disable hyper threading
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) if no errors occur while command execution else False
         """
         if self.is_hyperthreading_enabled(client) == enable:
             return True
         else:
-            stdin, stdout, stderr = client.exec_command(f'esxcli system settings kernel set -s hyperhreading -v {enable}')
+            command = f'esxcli system settings kernel set -s hyperhreading -v {enable}'
+            stdin, stdout, stderr = client.exec_command(command)
             return False if stderr.read() else True
 
     def verify_nic_driver(self, client, vmnic, driver):   #, version
@@ -57,7 +70,8 @@ class HostConfig:
         :param driver: (str)driver name (e.g ixgbe, ixgben, etc)
         :return: (bool) True if specified version of driver is enabled on vmnic else False
         """
-        stdin, stdout, stderr = client.exec_command(f'vsish -ep get /net/pNics/{vmnic}/properties')
+        command = f'vsish -ep get /net/pNics/{vmnic}/properties'
+        stdin, stdout, stderr = client.exec_command(command)
         properties = eval(stdout.read().decode())
         return True if (properties['module'] == driver) else False
 
@@ -71,11 +85,19 @@ class HostConfig:
         """
         if self.verify_nic_driver(client, vmnic, driver):
             return True
-        stdin, stdout, stderr = client.exec_command(f' esxcli software vib list | grep {driver}')
-        if stdout.read().decode().find(driver) > -1:
+        command = f' esxcli software vib list | grep {driver}'
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if output.find(driver) > -1:
             stdin, stdout, stderr = client.exec_command(f' esxcli system module set -m {driver} -e true')
             stdin, stdout, stderr = client.exec_command(f' esxcli system module load -m {driver}')
-        return True
+            output1 = stdout.read().decode()
+            if self.verify_nic_driver(client, vmnic, driver):
+                return True, output
+            else:
+                return False, output
+        else:
+            return False, f'{driver} not present on host'
 
     def is_fcoe_enabled(self, client):
         """
@@ -230,7 +252,11 @@ class HostConfig:
             return True
         value = 1 if enable == True else 0
         stdin, stdout, stderr = client.exec_command(f'vsish -ep set /net/pNics/{vmnic}/sched/txMode {value}')
-        return True if len(stdout.readline()) == 0 else False
+        output = stdout.read().decode()
+        if self.is_tx_split_enabled(client, vmnic) == enable:
+            return True, output
+        else:
+            return False, output
 
 
 def unit_test():
