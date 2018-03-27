@@ -11,6 +11,7 @@ import json
 
 from src.util import HostSession, LogUtil
 from src.env_conf import settings
+from src.core.traffic_generator import Trex
 from src.tests import host_config
 from src.tests import vm_deploy
 from src.tests import vm_config
@@ -123,14 +124,14 @@ def main():
         configure_logging(settings.getValue('VERBOSITY'))
 
 
-
+    #trex = Trex.Trex()
     # host_config.host_config()
-    vm_config.vm_config()
+    #vm_config.vm_config()
     # Deploy vnfs based on the vnf.json file
     #_LOGGER.info('Initiating VM deployment on host')
     #vm_deploy.deploy_vm()
     #_LOGGER.info('VM Deployment complete')
-
+    #trex.trafficGen()
     """
     hosts = json.load(open(r'env_conf\host.json'))
     for host in hosts['HOST_DETAILS']:
