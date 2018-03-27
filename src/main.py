@@ -13,6 +13,7 @@ from src.util import HostSession, LogUtil
 from src.env_conf import settings
 from src.tests import host_config
 from src.tests import vm_deploy
+from src.tests import vm_config
 
 
 _CURR_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -124,7 +125,7 @@ def main():
 
 
     # host_config.host_config()
-
+    vm_config.vm_config()
     # Deploy vnfs based on the vnf.json file
     #_LOGGER.info('Initiating VM deployment on host')
     #vm_deploy.deploy_vm()

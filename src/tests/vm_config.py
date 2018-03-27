@@ -21,7 +21,7 @@ def vm_config(keep_defaults=False):
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         # print(client)
         # vms = vmUtil.get_vm_list(client)
-        temp_vms = vm_conf['ESXI65']['VM_NAME']
+        temp_vms = vm_conf['ESXI_65']['VM_NAMES']
         ver = conf_host.get_host_version(client)
         _NICS = host['NICS'].split(',')
         _LOGGER.info('Verifying optimization on virtual machine')
@@ -31,12 +31,11 @@ def vm_config(keep_defaults=False):
                 ESXI VERSION 6.5
             """
             if ver.find('6.5') > -1:
-                param = vm_conf['ESXI65']
+                param = vm_conf['ESXI_65']
                 _LOGGER.info(f'HOST VERSION : ESXI 6.5 ')
                 _LOGGER.info(f'virtual machine : {vm}')
                 vmUtil.power_off_vm(client, vm)
-                _LOGGER.info(f'checking Latency sensitivity is set to "high":\
-                {vmTune.verify_latency_sensitivity(client,vm)}')
+                _LOGGER.info(f'checking Latency sensitivity is set to "high":{vmTune.verify_latency_sensitivity(client,vm)}')
                 status = vmTune.config_latency_sensitivity(client, vm)
                 if status:
                     _LOGGER.info(f'Setting latency sensitivity to high : {status}')
@@ -107,7 +106,7 @@ def vm_config(keep_defaults=False):
                 """
                     ESXI VERSION 6.0 U2
                 """
-                param = vm_conf['ESXI60U2']
+                param = vm_conf['ESXI_60U2']
                 _LOGGER.info(f'HOST VETSION : ESXI 6.0 U2')
                 _LOGGER.info('Verifying optimization on virtual machine')
                 vmUtil.power_off_vm(client, vm)
@@ -179,7 +178,7 @@ def vm_config(keep_defaults=False):
                     else:
                         _LOGGER.error(f'changing NUMA value for {nic}:{status}')
                 """
-                vmTune.clean_file(client,vm)
+                vmTune.clean_file(client, vm)
                 vmUtil.power_on_vm(client, vm)
         HostSession.HostSession().disconnect(client)
 
@@ -209,4 +208,4 @@ def vm_config():
         print('verify_sys_context : {}'.format(VmTuning.verify_sys_context(client, vmname, 3)))
         client.close()
 """
-vm_config()
+# vm_config()

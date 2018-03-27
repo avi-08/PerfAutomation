@@ -31,10 +31,10 @@ class VmUtility:
 
     # Extracting NUMA node of the virtual Machine
     def get_numa_node(self, session, vmname):
-        _LOGGER.debug(f'cat vmfs/volumes/{self.get_datastore(session, vmname)}/{vmname}/test.vmx | grep numa.nodeAffinity')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{self.get_datastore(session, vmname)}/{vmname}/test.vmx | grep numa.nodeAffinity')
+        _LOGGER.debug(f'cat vmfs/volumes/{self.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep numa.nodeAffinity')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{self.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep numa.nodeAffinity')
         r = stdout.read().decode()
-        _LOGGER.info(f'command Result : {r}')
+        # _LOGGER.info(f'command Result : {r}')
         st = re.search('"(.*?)"', r)
         if st:
             status = st.group()
@@ -54,7 +54,7 @@ class VmUtility:
         _LOGGER.debug(f'Executing command : vim-cmd vmsvc/getallvms | grep {vmname} ')
         stdin, stdout, stderr = client.exec_command(f'vim-cmd vmsvc/getallvms | grep {vmname}')
         r = stdout.read().decode()
-        _LOGGER.debug(f'command Result : {r}')
+        # _LOGGER.debug(f'command Result : {r}')
         return r.split(' ')[0]
 
     # Power on VM
@@ -100,8 +100,8 @@ class VmUtility:
         :param vmname: name of the virtual machine
         :return: virtual machine's .vmx file data
         """
-        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx')
-        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx')
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx')
         return (stdout.read().decode())
 
     #To get datastore of a VM
@@ -129,8 +129,8 @@ class VmUtility:
         :param vmname: Name of the virtual machine.
         :return: number of the cpu core for the virtual machine.
         """
-        _LOGGER.debug(f'Eccuting command : cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | gerp numvcpus -i')
-        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep numvcpus -i')
+        _LOGGER.debug(f'Eccuting command : cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx | gerp numvcpus -i')
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx | grep numvcpus -i')
         st = stdout.read().decode()
         m = re.search('"(.*?)"', st)
         if m:
@@ -160,7 +160,7 @@ class VmUtility:
         :param vmname: Name of the Virtual Machine 
         :return: 
         """ 
-        # stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep networkName -i')
+        # stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx | grep networkName -i')
         stdin, stdout, stderr = client.exec_command(f'vim-cmd vmsvc/get.config {self.get_vm_id(client,vmname)}  | grep ether -i')
         st = stdout.read().decode()
         # m = re.search('\d', st)
@@ -173,7 +173,7 @@ class VmUtility:
 
     def get_vm_memory(self, client, vmname):
 
-        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep memSize -i')
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/{vmname}.vmx | grep memSize -i')
         r = stdout.read().decode()
         m = re.search('"(.*?)"',r)
         if m:

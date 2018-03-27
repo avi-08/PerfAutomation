@@ -34,7 +34,7 @@ class VmTunning :
     """
     #cleaning the file
     def clean_file (self, session, vmname):
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
         data = stdout.read().decode()
         data = data.split('\n')
         res = ''
@@ -43,7 +43,7 @@ class VmTunning :
                 res += d.strip() + '\n'
         res = res.replace('"', '\\"')
         # print( data )
-        stdin, stdout, stderr = session.exec_command(f'echo "{res}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+        stdin, stdout, stderr = session.exec_command(f'echo "{res}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
 
     # configration of the latency sensitivity
     def config_latency_sensitivity(self, session, vmname): 
@@ -54,7 +54,7 @@ class VmTunning :
             data = data.replace('sched.cpu.latencySensitivity = "normal"', 'sched.cpu.latencySensitivity = "high"')
             data = data.replace('"', '\\"')
             # print( data )
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
             # return False if stderr.read() else True
             return True
  
@@ -64,7 +64,7 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
@@ -72,12 +72,12 @@ class VmTunning :
                 exist = exist.strip('"')
                 data = data.replace(f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{exist}"',f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
                 data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"'
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
     # configuring the TX thread allocation
@@ -87,21 +87,21 @@ class VmTunning :
         else:
             data = vmUtil.read_vmx(session, vmname)
             #for vnic in set(vmUtil.get_vnic_no(session, vmname)):
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ethernet{vnic}.ctxPerDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
             r = stdout.read().decode()
             flag = re.search('"(.*?)"', r)
             # print(f'ethernet{vnic}.ctxPerDev : {flag}')
             if flag:
                 data = data.replace(f'ethernet{vnic}.ctxPerDev = "0"', f'ethernet{vnic}.ctxPerDev = "1"')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
                 # print(f'addding tx thread')
                 data += f'ethernet{vnic}.ctxPerDev = "1"'
                 # print(f'addding tx thread {data}')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
 
@@ -111,7 +111,7 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
@@ -119,13 +119,13 @@ class VmTunning :
                 cpu = cpu.strip('"')
                 data = data.replace(f'sched.cpu.latencySensitivity.sysContexts = "{cpu}"', f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
                 data += f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"'
                 data = data.replace('"', '\\"')
                 vmUtil.power_off_vm(session, vmname)
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 vmUtil.power_on_vm(session, vmname)
                 return False if stderr.read() else True
 
@@ -135,7 +135,7 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.get_cpu_speed(session))
@@ -145,12 +145,12 @@ class VmTunning :
                 old = old.strip('"')
                 data = data.replace(f'sched.cpu.min = "{old}"', f'sched.cpu.min = "{max_size}"')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
                 data += f'sched.cpu.min = "{max_size}"'
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
     # configuration cpu share
@@ -159,7 +159,7 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.shares -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
@@ -167,12 +167,12 @@ class VmTunning :
                 old = old.strip('"')
                 data = data.replace(f'sched.cpu.shares = "{old}"','sched.cpu.shares = "high"')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
                 data += 'sched.cpu.shares = "high"'
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
     # configuration on Memory share
@@ -181,7 +181,7 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.shares -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
@@ -189,12 +189,12 @@ class VmTunning :
                 old = old.strip('"')
                 data = data.replace(f'sched.mem.shares = "{old}"','sched.mem.shares = "high"')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
                 data += 'sched.mem.shares = "high"'
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
     # configuration on Memory reservation
@@ -203,8 +203,8 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
@@ -212,7 +212,7 @@ class VmTunning :
                 size = size.strip('"')
                 data = data.replace(f'sched.mem.minSize = "{size}"',f'sched.mem.minSize = "{vmUtil.get_vm_memory(session, vmname)}"')
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
 
@@ -224,13 +224,13 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep numa.nodeAffinity')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep numa.nodeAffinity')
             a = stdout.read().decode()
             e = vmUtil.get_numa_node(session, vmname)
             if a:
                 data += f'numa.nodeAffinity = "{e}"'
                 data = data.replace('"', '\\"')
-                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
                 # return True
             else:
@@ -242,7 +242,7 @@ class VmTunning :
                     old = vmUtil.get_numa_node(session, vmname)
                     data = data.replace(f'numa.nodeAffinity = "{old}"', f'numa.nodeAffinity = "{numa}"')
                     data = data.replace('"', '\\"')
-                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                    stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                     return False if stderr.read() else True
                     # return True
                 else:
@@ -258,9 +258,9 @@ class VmTunning :
     def verify_latency_sensitivity(self, session, vmname): 
         vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
-            # print(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep latency')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
+            # print(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
             r = stdout.read().decode()
             _LOGGER.debug(f'{r}')
             st = re.search('"(.*?)"', r)
@@ -272,21 +272,21 @@ class VmTunning :
 
     # verification of CPU reservation
     def verify_cpu_reservation(self, session, vmname):
-        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i ')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i ')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i')
         r = stdout.read().decode()
         _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
         max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.get_cpu_speed(session))
-        print(f'max_size cpu reservation: {max_size}')
+        _LOGGER.info(f'max size cpu reservation available : {max_size}')
         if st:
             status = st.group()
             return True if int(status.strip('"')) == max_size else False
 
     # verification of CPU share
     def verify_cpu_share(self,session,vmname):
-        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.shares -i ')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.shares -i')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i ')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i')
         r = stdout.read().decode()
         _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
@@ -296,8 +296,8 @@ class VmTunning :
 
     # verification of Memory shares
     def verify_mem_share(self, session, vmname):
-        _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.shares -i')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.shares -i')
+        _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
         r = stdout.read().decode()
         _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
@@ -307,8 +307,8 @@ class VmTunning :
 
     # verification of Memory reservation
     def verify_mem_reservation(self, session, vmname ):
-        _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.mem.minSize -i')
+        _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
         r = stdout.read().decode()
         _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
@@ -319,8 +319,8 @@ class VmTunning :
     # verification of the Virtual NIC adapter
     def verify_nic_adapter_type(self, session, vmname, adapter):
         for v_nic in set(vmUtil.get_vnic_no(session, vmname)):
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ethernet{v_nic}.virtualDev -i')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx |grep ethernet{v_nic}.virtualDev -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{v_nic}.virtualDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{v_nic}.virtualDev -i')
             r = stdout.read().decode()
             _LOGGER.info(f'networtk adapter : {r}')
             st = re.search('"(.*?)"', r)
@@ -334,8 +334,8 @@ class VmTunning :
     # verification of the Tx thread allocation is enable
     def verify_tx_thread_allocation(self, session, vmname, vnic):
         for vnic in set(vmUtil.get_datastore(session, vmname)):
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ethernet{vnic}ctxPerDev -i')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ethernet{vnic}.ctxPerDev -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}ctxPerDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
             r = stdout.read().decode()
             # print(f'verify tx :{r}')
             _LOGGER.debug(f'{r}')
@@ -349,8 +349,8 @@ class VmTunning :
 
     # verification of sysContext
     def verify_sys_context(self, session, vmname, vcpu):
-        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
         r = stdout.read().decode()
         _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
