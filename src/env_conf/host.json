@@ -5,13 +5,6 @@
         "USER": "root",
         "PASSWORD": "ca$hc0w",
         "NICS": "vmnic0,vmnic1"
-    },
-
-    {
-        "HOST": "10.110.209.156",
-        "USER": "root",
-        "PASSWORD": "ca$hc0w",
-        "NICS": "vmnic4,vmnic5"
     }
  ],
 
