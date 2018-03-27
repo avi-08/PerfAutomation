@@ -1,3 +1,10 @@
 {
-  "TESTCASES" : []
+  "TESTCASES": [
+    {
+      "NAME": "TC1",
+      "DESCRIPTION": "a single vm, 2 port, single flow test case",
+      "FLOWTYPE": "single",
+      "VM_NAME": "TEST-VM"
+    }
+  ]
 }

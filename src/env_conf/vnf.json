@@ -1,5 +1,9 @@
 {
-  "VM_NAME": "TESTDPDK",
-  "DATASTORE": "Datastore 2",
-  "NETWORKS": "VM Network,VM Network"
+  "VM_DETAILS": [
+    {
+      "VM_NAME": "TESTDPDK1",
+      "DATASTORE": "Datastore 2",
+      "NETWORKS": "VM Network,VM Network"
+    }
+  ]
 }

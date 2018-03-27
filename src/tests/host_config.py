@@ -39,54 +39,89 @@ def host_config(keep_defaults=False):
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         _NICS = host['NICS'].split(',')
         ver = config_host.get_host_version(client)
+        _LOGGER.info(f'Getting ESXi version details: {ver}')
+        _LOGGER.info('Start applying optimizations for the specific Esxi version')
+        _LOGGER.info('Getting configuration settings from host.json')
         if ver.find('6.5') > -1:
             params = settings.getValue('ESXI65')
-            _LOGGER.info(f'ESXi version details: {ver}')
-            _LOGGER.info(f'Checking if Hyper threading enabled: {config_host.is_hyperthreading_enabled(client)}')
+            _LOGGER.info(f'Hyperthreading to be enabled: {params["ENABLE_HYPERTHREADING"]}')
+            _LOGGER.info('Configuring hyperthreading')
             success, message = config_host.config_hyperthreading(client, enable=params["ENABLE_HYPERTHREADING"])
-            if success:
-                _LOGGER.info(f'Hyperthreading configuration(enable={params["ENABLE_HYPERTHREADING"]})success:{success}')
+            if eval(success):
+                _LOGGER.info(f'Hyperthreading configuration success:{eval(success)}')
             else:
-                _LOGGER.error(
-                    f'Hyper threading configuration (enable={params["ENABLE_HYPERTHREADING"]}) success: {success}')
+                _LOGGER.error(f'Hyperthreading configuration success: {eval(success)}')
+                _LOGGER.info(f'host output: {message}')
+                HostSession.HostSession().disconnect(client)
                 return False
 
-            _LOGGER.info(f'Configuring NICS {_NICS} with {params["NIC_DRIVER"]}')
+            _LOGGER.info(f'Configuring NICS {_NICS} for driver module: {params["NIC_DRIVER"]}')
             for nic in _NICS:
-                success = config_host.config_nic_driver(client, nic, params['NIC_DRIVER']['NAME'])
-                if success:
-                    _LOGGER.info(f'{nic} configuration success: {success}')
+                _LOGGER.info(f'Configuring {nic}')
+                success, message = config_host.config_nic_driver(client, nic, params['NIC_DRIVER']['NAME'])
+                if eval(success):
+                    _LOGGER.info(f'{nic} driver configuration success: {eval(success)}')
                 else:
-                    _LOGGER.error(f'{nic} configuration success: {success}')
+                    _LOGGER.error(f'{nic} driver configuration success: {eval(success)}')
+                    _LOGGER.info(f'host output: {message}')
+                    HostSession.HostSession().disconnect(client)
                     return False
 
-            _LOGGER.info(f'Checking if RSS enabled: {config_host.verify_rss(client, params["NIC_DRIVER"])}')
-            success = config_host.config_rss(client, params["NIC_DRIVER"], enable=params["ENABLE_RSS"])
-            if success:
-                _LOGGER.info(f'RSS configuration(enable = {params["ENABLE_RSS"]}) success : {success}')
+            _LOGGER.info(f'RSS to be enabled: {params["ENABLE_RSS"]}')
+            _LOGGER.info('Configuring RSS')
+            success, message = config_host.config_rss(client, params["NIC_DRIVER"]['NAME'], enable=params["ENABLE_RSS"])
+            if eval(success):
+                _LOGGER.info(f'RSS configuration success : {eval(success)}')
             else:
-                _LOGGER.info(f'RSS configuration(enable = {params["ENABLE_RSS"]}) success : {success}')
+                _LOGGER.info(f'RSS configuration success : {eval(success)}')
+                _LOGGER.info(f'host output: {message}')
+                HostSession.HostSession().disconnect(client)
                 return False
 
             for nic in _NICS:
-                _LOGGER.info(f'Configuring Physical NIC Ring Size as {params["NIC_BUFFER_SIZE"]} on {nic} : \
-                 isSet = {config_host.verify_nic_ring_size(client, nic, params["NIC_BUFFER_SIZE"]["RX"], params["NIC_BUFFER_SIZE"]["TX"])} : \
-                 config success={config_host.config_nic_ring_size(client, nic, params["NIC_BUFFER_SIZE"]["RX"], params["NIC_BUFFER_SIZE"]["TX"])} ')
+                _LOGGER.info(f'Configuring Physical NIC Ring Size as {params["NIC_BUFFER_SIZE"]} on {nic}')
+                success, message = config_host.config_nic_ring_size(client, nic, params["NIC_BUFFER_SIZE"]["RX"], params["NIC_BUFFER_SIZE"]["TX"])
+                if eval(success):
+                    _LOGGER.info(f'{nic} ring size configuration success: {eval(success)}')
+                else:
+                    _LOGGER.error(f'{nic} ring size configuration success: {eval(success)}')
+                    _LOGGER.info(f'host output: {message}')
+                    HostSession.HostSession().disconnect(client)
+                    return False
 
-            _LOGGER.info(f'Configuring SW TX queue length as {params["SW_TX_QUEUE"]}: isSet={config_host.verify_sw_tx_queue_size(client, params["SW_TX_QUEUE"])} \
-             : config success = {config_host.config_sw_tx_queue_size(client, params["SW_TX_QUEUE"])}')
-
-            _LOGGER.info(f'Checking if Queue Pairing enabled: {config_host.is_queue_pairing_enabled(client)}')
-            success = config_host.config_queue_pairing(client, enable=params["ENABLE_QUEUE_PAIRING"])
-            if success:
-                _LOGGER.info(f'Queue Pairing configuration(enable={params["ENABLE_QUEUE_PAIRING"]}) success: {success}')
+            _LOGGER.info(f'Configuring SW TX queue length as {params["SW_TX_QUEUE"]}')
+            success, message = config_host.config_sw_tx_queue_size(client, params["SW_TX_QUEUE"])
+            if eval(success):
+                _LOGGER.info(f'Software TX queue configuration success: {eval(success)}')
             else:
-                _LOGGER.error(f'Queue Pairing configuration(enable={params["ENABLE_QUEUE_PAIRING"]})success: {success}')
+                _LOGGER.error(f'Software TX queue configuration success: {eval(success)}')
+                _LOGGER.info(f'host output: {message}')
+                HostSession.HostSession().disconnect(client)
+                return False
 
+            _LOGGER.info(f'Queue Pairing to be enabled: {params["ENABLE_QUEUE_PAIRING"]}')
+            success, message = config_host.config_queue_pairing(client, enable=params["ENABLE_QUEUE_PAIRING"])
+            if eval(success):
+                _LOGGER.info(f'Queue Pairing configuration success: {eval(success)}')
+            else:
+                _LOGGER.info(f'Queue Pairing configuration success: {eval(success)}')
+                _LOGGER.info(f'host output: {message}')
+                HostSession.HostSession().disconnect(client)
+                return False
+
+            _LOGGER.info(f'Split TX mode to be enabled: {params["ENABLE_TX_SPLIT"]}')
             for nic in _NICS:
-                _LOGGER.info(f'Configuring Split TX mode  ={params["ENABLE_TX_SPLIT"]}: isEnabled={config_host.is_tx_split_enabled(client, nic)} \
-                                     : config success = {config_host.config_tx_split(client, nic, enable=params["ENABLE_TX_SPLIT"])}')
-
+                _LOGGER.info(f'Configuring Split TX on {nic}')
+                success, message = config_host.config_tx_split(client, nic, enable=params["ENABLE_TX_SPLIT"])
+                if eval(success):
+                    _LOGGER.info(
+                        f'Split TX configuration success: {eval(success)}')
+                else:
+                    _LOGGER.error(
+                        f'Split TX configuration success: {eval(success)}')
+                    _LOGGER.info(f'host output: {message}')
+                    HostSession.HostSession().disconnect(client)
+                    return False
         else:
             params = settings.getValue('ESXI60U2')
             _LOGGER.info(ver)
@@ -101,7 +136,7 @@ def host_config(keep_defaults=False):
 
             _LOGGER.info(f'RSS enabled: {config_host.verify_rss(client, params["NIC_DRIVER"])}')
             _LOGGER.info(
-                f'Configuring RSS: enable = {params["ENABLE_RSS"]} success={config_host.config_rss(client, params["NIC_DRIVER"], enable=params["ENABLE_RSS"])}')
+                f'Configuring RSS: enable = {params["ENABLE_RSS"]} success={config_host.config_rss(client, params["NIC_DRIVER"]["NAME"], enable=params["ENABLE_RSS"])}')
 
             for nic in _NICS:
                 _LOGGER.info(f'Configuring Physical NIC Ring Size as {params["NIC_BUFFER_SIZE"]} on {nic} : \
@@ -118,3 +153,4 @@ def host_config(keep_defaults=False):
                 _LOGGER.info(f'Configuring Split TX mode  ={params["ENABLE_TX_SPLIT"]}: isEnabled={config_host.is_tx_split_enabled(client, nic)} \
                                                  : config success = {config_host.config_tx_split(client, nic, enable=params["ENABLE_TX_SPLIT"])}')
         HostSession.HostSession().disconnect(client)
+        return True

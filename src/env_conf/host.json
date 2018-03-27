@@ -4,7 +4,7 @@
         "HOST": "10.110.209.156",
         "USER": "root",
         "PASSWORD": "ca$hc0w",
-        "NICS": "vmnic0,vmnic1"
+        "NICS": "vmnic6"
     }
  ],
 
@@ -21,7 +21,7 @@
     "SW_TX_QUEUE": 6000,
 
     "NIC_DRIVER": {
-        "NAME": "Ixgben",
+        "NAME": "ixgben",
         "VERSION": "1.0.0.0"
     },
 
@@ -45,7 +45,7 @@
     "SW_TX_QUEUE": 1010,
 
     "NIC_DRIVER": {
-        "NAME": "Ixgbe",
+        "NAME": "ixgbe",
         "VERSION": "4.4.1-iov"
     },
 

@@ -34,19 +34,21 @@ class HostConfig:
         command = 'vmware -v'
         _LOGGER.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
-        return stdout.read().decode()
+        return stdout.read().decode().strip('\n')
 
     def is_hyperthreading_enabled(self, client):
         """
         Check if hyper threading is enabled
         :param client: paramiko SSHClient object
-        :return: (bool)True if hyper threading is enabled else False
+        :return: (success : bool, message : str)True if hyper threading is enabled else False
         """
         command = 'esxcli system settings kernel list | grep hyperthreading'
         _LOGGER.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
-        return str(True), output if re.sub(' +', ' ', output.strip()).split(' ')[-3].upper() == 'TRUE' else str(False), output
+        if re.sub(' +', ' ', output.strip()).split(' ')[-3].upper() == 'TRUE':
+            return str(True), output
+        return str(False), output
 
     def config_hyperthreading(self, client, enable):
         """
@@ -55,16 +57,16 @@ class HostConfig:
         :param enable: (bool) specifying whether to enable or disable hyper threading
         :return: (success : bool, message : str) if no errors occur while command execution else False
         """
-        if self.is_hyperthreading_enabled(client) == enable:
-            return True
-        else:
-            command = f'esxcli system settings kernel set -s hyperhreading -v {enable}'
-            stdin, stdout, stderr = client.exec_command(command)
-            output = stdout.read().decode()
-            if self.is_hyperthreading_enabled(client) == enable:
-                return str(False), output
-            else:
-                return str(False), output
+        check = self.is_hyperthreading_enabled(client)
+        if eval(check[0]) == enable:
+            return str(True), check[1]
+        command = f'esxcli system settings kernel set -s hyperhreading -v {enable}'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if eval(self.is_hyperthreading_enabled(client)[0]) == enable:
+            return str(False), output
+        return str(False), output
 
     def verify_nic_driver(self, client, vmnic, driver):   #, version
         """
@@ -72,12 +74,15 @@ class HostConfig:
         :param client: paramiko SSHClient object
         :param vmnic: (str)<vmnicX> for checking driver
         :param driver: (str)driver name (e.g ixgbe, ixgben, etc)
-        :return: (bool) True if specified version of driver is enabled on vmnic else False
+        :return: (success : bool, message : str) True if specified version of driver is enabled on vmnic else False
         """
         command = f'vsish -ep get /net/pNics/{vmnic}/properties'
+        _LOGGER.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
-        properties = eval(stdout.read().decode())
-        return True if (properties['module'] == driver) else False
+        output = eval(stdout.read().decode())
+        if output['module'] == driver:
+            return str(True), output
+        return str(False), output
 
     def config_nic_driver(self, client, vmnic, driver):
         """
@@ -85,55 +90,72 @@ class HostConfig:
         :param client: paramiko SSHClient object
         :param vmnic: (str)<vmnicX> name of NIC to configure driver on
         :param driver: (str)driver name (e.g ixgbe, ixgben, etc)
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) True if no errors occur while command execution else False
         """
         if self.verify_nic_driver(client, vmnic, driver):
-            return True
+            return str(True), f'{driver} already configured.'
+        _LOGGER.debug(f'Executing command: esxcli software vib list | grep {driver} ')
         command = f' esxcli software vib list | grep {driver}'
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
-        if output.find(driver) > -1:
+        if re.search(driver, output, re.IGNORECASE):
+            _LOGGER.debug(f'Executing command: esxcli system module set -m {driver} -e true ')
             stdin, stdout, stderr = client.exec_command(f' esxcli system module set -m {driver} -e true')
-            stdin, stdout, stderr = client.exec_command(f' esxcli system module load -m {driver}')
             output1 = stdout.read().decode()
-            if self.verify_nic_driver(client, vmnic, driver):
-                return str(True), output
-            else:
-                return str(False), output
-        else:
-            return str(False), f'{driver} not present on host'
+            _LOGGER.debug(f'Executing command: esxcli system module load -m {driver} ')
+            stdin, stdout, stderr = client.exec_command(f' esxcli system module load -m {driver}')
+            output2 = stdout.read().decode()
+            if eval(self.verify_nic_driver(client, vmnic, driver)[0]):
+                return str(True), output1 + '\n' + output2
+            return str(False), output1 + '\n' + output2
+        return str(False), output
 
     def is_fcoe_enabled(self, client):
         """
         Check whether FCoE is enabled on the ixgbe driver; only for ESXi 6.0U2
         :param client: paramiko SSHClient object
-        :return: (bool) True if FCoE is enabled else False
+        :return: (success : bool, message : str) True if FCoE is enabled else False
         """
-        stdin, stdout, stderr = client.exec_command('esxcfg-module -g ixgbe')
-        return True if stdout.read().decode().find("options = 'CNA=0,0'") > -1 else False
+        command = 'esxcfg-module -g ixgbe'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if re.search("options = 'CNA=0,0'", output, re.IGNORECASE):
+            return str(True), output
+        return str(False), output
 
     def config_fcoe(self, client, enable):
         """
         Configure FCoE on the ixgbe driver; only for ESXi 6.0U2
         :param client: paramiko SSHClient object
         :param enable: (bool) specifying whether to enable or disable FCoE
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) True if no errors occur while command execution else False
         """
-        if self.is_fcoe_enabled(client) == enable:
-            return True
-        else:
-            value = '0, 0' if not enable else '1, 1'
-            stdin, stdout, stderr = client.exec_command(f'esxcli system module parameters set -m ixgbe -p "CNA={value}" ')
-            return True if len(stdout.readline()) == 0 else False
+        check = self.is_fcoe_enabled(client)
+        if eval(check[0]) == enable:
+            return str(True), check[1]
+        value = '0, 0' if not enable else '1, 1'
+        command = f'esxcli system module parameters set -m ixgbe -p "CNA={value}" '
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if eval(self.is_fcoe_enabled(client)[0]) == enable:
+            return str(True), output
+        return str(False), output
 
     def verify_rss(self, client, driver):
         """
         Check if Receive side scaling is enabled on driver
         :param client: paramiko SSHClient object
-        :return: (bool) True if RSS is enabled else False
+        :return: (success : bool, message : str) True if RSS is enabled else False
         """
-        stdin, stdout, stderr = client.exec_command(f'esxcfg-module -g {driver}')
-        return True if stdout.read().decode().find("options = 'RSS=(4)") > -1 else False
+        command = f'esxcfg-module -g {driver}'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if output.__contains__('RSS=(4)'):
+            return str(True), output
+        return str(False), output
 
     def config_rss(self, client, driver, enable):
         """
@@ -141,15 +163,19 @@ class HostConfig:
         :param client: paramiko SSHClient object
         :param driver: (str)driver name (e.g ixgbe, ixgben, etc)
         :param enable: (bool) whether or not to enable receive side scaling on the driver
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) True if no errors occur while command execution else False
         """
-        if self.verify_rss(client, driver) == enable:
-            return True
-        else:
-            value = '(0)' if enable == True else '(4)'
-            stdin, stdout, stderr = client.exec_command(f'esxcli system module parameters set -m {driver} -p "RSS={value}"')
-            return True \
-                #if len(stdout.readline()) == 0 else False
+        check = self.verify_rss(client, driver)
+        if eval(check[0]) == enable:
+            return str(True), check[1]
+        value = '(0)' if enable == False else '(4)'
+        command = f'esxcli system module parameters set -m {driver} -p "RSS={value}"'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if eval(self.verify_rss(client, driver)[0]) == enable:
+            return str(True), output
+        return str(False), output
 
     def verify_nic_ring_size(self, client, vmnic, RX_SIZE, TX_SIZE):
         """
@@ -158,11 +184,16 @@ class HostConfig:
         :param vmnic: (str) <vmnicX>
         :param RX_SIZE: (int) RX ring size
         :param TX_SIZE: (int) TX ring size
-        :return: (bool) True if required ring size is configured on the vmnicX else False
+        :return: (success : bool, message : str) True if required ring size is configured on the vmnicX else False
         """
-        stdin, stdout, stderr = client.exec_command(f'esxcli network nic ring current get --nic-name={vmnic}')
-        data = dict(pair.lstrip().split(': ') for pair in stdout.read().decode().split('\n')[:-1])
-        return True if int(data['RX']) == RX_SIZE and int(data['TX']) == TX_SIZE else False
+        command = f'esxcli network nic ring current get --nic-name={vmnic}'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        data = dict(pair.lstrip().split(': ') for pair in output.split('\n')[:-1])
+        if int(data['RX']) == RX_SIZE and int(data['TX']) == TX_SIZE:
+            return str(True), output
+        return str(False), output
 
     def config_nic_ring_size(self, client, vmnic, RX_SIZE, TX_SIZE):
         """
@@ -171,67 +202,88 @@ class HostConfig:
         :param vmnic: (str)<vmnicX>
         :param RX_SIZE: (int) RX ring size
         :param TX_SIZE: (int) TX ring size
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) True if no errors occur while command execution else False
         """
-        if self.verify_nic_ring_size(client, vmnic, RX_SIZE, TX_SIZE):
-            return True
-        stdin, stdout, stderr = client.exec_command(
-            f'esxcli network nic ring current set -n={vmnic} -r={RX_SIZE} -t={TX_SIZE}')
-        return True if len(stdout.readline()) == 0 else False
+        check = self.verify_nic_ring_size(client, vmnic, RX_SIZE, TX_SIZE)
+        if eval(check[0]):
+            return str(True), check[1]
+        command = f'esxcli network nic ring current set -n={vmnic} -r={RX_SIZE} -t={TX_SIZE}'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if eval(self.verify_nic_ring_size(client, vmnic, RX_SIZE, TX_SIZE)[0]):
+            return str(True), output
+        return str(False), output
 
     def verify_sw_tx_queue_size(self, client, queue_length):
         """
         Check software TX queue size
         :param client: paramiko SSHClient object
         :param queue_length: (int) software TX queue length
-        :return: (bool) True if s/w TX queue length is same as given parameter else False
+        :return: (success : bool, message : str) True if s/w TX queue length is same as given parameter else False
         """
-        stdin, stdout, stderr = client.exec_command('vsish -ep get /config/Net/intOpts/MaxNetifTxQueueLen')
-        data = eval(stdout.read().decode())
-        return True if data['cur'] == queue_length else False
+        command = 'vsish -ep get /config/Net/intOpts/MaxNetifTxQueueLen'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        data = eval(output)
+        if data['cur'] == queue_length:
+            return str(True), output
+        return str(False), output
 
     def config_sw_tx_queue_size(self, client, queue_length):
         """
         Configure s/w TX queue size
         :param client: paramiko SSHClient object
         :param queue_length: (int) software TX queue length to be configured
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) True if no errors occur while command execution else False
         """
-        if self.verify_sw_tx_queue_size(client, queue_length):
-            return True
-        else:
-            stdin, stdout, stderr = client.exec_command(
-                f'vsish -ep set /config/Net/intOpts/MaxNetifTxQueueLen {queue_length}')
-            return True if int(stdout.readline()) == queue_length else False
+        check = self.verify_sw_tx_queue_size(client, queue_length)
+        if eval(check[0]):
+            return str(True), check[1]
+        command = f'vsish -ep set /config/Net/intOpts/MaxNetifTxQueueLen {queue_length}'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if eval(self.verify_sw_tx_queue_size(client, queue_length)[0]):
+            return str(True), output
+        return str(False), output
 
     def is_queue_pairing_enabled(self, client):
         """
         Check if Queue Pairing is enabled
         :param client: paramiko SSHClient object
-        :return: (bool) True if Queue Pairing is enabled else False
+        :return: (success : bool, message : str) True if Queue Pairing is enabled else False
         """
-        stdin, stdout, stderr = client.exec_command('vsish -ep get /config/Net/intOpts/NetNetqRxQueueFeatPairEnable')
-        data = eval(stdout.read().decode())
-        return True if int(data['cur']) == 1 else False
+        command = 'vsish -ep get /config/Net/intOpts/NetNetqRxQueueFeatPairEnable'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        data = eval(output)
+        if int(data['cur']) == 1:
+            return str(True), output
+        return str(False), output
 
     def config_queue_pairing(self, client, enable):
         """
         Configure Queue Pairing
         :param client: paramiko SSHClient object
         :param enable: (bool) specify whether to enable or disable Queue Pairing
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) True if no errors occur while command execution else False
         """
-        if self.is_queue_pairing_enabled(client) == enable:
-            return True
+        check = self.is_queue_pairing_enabled(client)
+        if eval(check[0]) == enable:
+            return str(True), check[1]
         value = 1 if enable == True else 0
-        stdin, stdout, stderr = client.exec_command(
-            f'vsish -ep set /config/Net/intOpts/NetNetqRxQueueFeatPairEnable {value}')
-        return True if int(stdout.readline()) == value else False
+        command = f'vsish -ep set /config/Net/intOpts/NetNetqRxQueueFeatPairEnable {value}'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        if eval(self.is_queue_pairing_enabled(client)[0]):
+            return str(True), output
+        return str(False), output
 
     def verify_sys_thread_pinning(client):
-        pass
-
-    def config_sys_thread_pinning(client):
         pass
 
     def is_tx_split_enabled(self, client, vmnic):
@@ -239,10 +291,13 @@ class HostConfig:
         Check if TX split mode is enabled
         :param client: paramiko SSHClient object
         :param vmnic: (str)<vmnicX> name of NIC
-        :return: (bool) True if TX split is enabled else False
+        :return: (success : bool, message : str) True if TX split is enabled else False
         """
-        stdin, stdout, stderr = client.exec_command(f'vsish -ep get /net/pNics/{vmnic}/sched/txMode')
-        return True if int(stdout.read().decode()) == 1 else False
+        command = f'vsish -ep get /net/pNics/{vmnic}/sched/txMode'
+        _LOGGER.debug(f'Executing command: {command}')
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        return str(True), output if int(output) == 1 else str(False), output
 
     def config_tx_split(self, client, vmnic, enable):
         """
@@ -250,17 +305,19 @@ class HostConfig:
         :param client: paramiko SSHClient object
         :param vmnic: (str)<vmnicX> name of NIC
         :param enable: (bool) specify whether to enable or disable TX Split mode
-        :return: (bool) True if no errors occur while command execution else False
+        :return: (success : bool, message : str) True if no errors occur while command execution else False
         """
-        if self.is_tx_split_enabled(client, vmnic) == enable:
-            return True
+        check = self.is_tx_split_enabled(client, vmnic)
+        if eval(check[0]) == enable:
+            return str(True), check[1]
         value = 1 if enable == True else 0
-        stdin, stdout, stderr = client.exec_command(f'vsish -ep set /net/pNics/{vmnic}/sched/txMode {value}')
+        _LOGGER.debug(f'Executing command: {command}')
+        command = f'vsish -ep set /net/pNics/{vmnic}/sched/txMode {value}'
+        stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
-        if self.is_tx_split_enabled(client, vmnic) == enable:
-            return True, output
-        else:
-            return False, output
+        if eval(self.is_tx_split_enabled(client, vmnic)[0]) == enable:
+            return str(True), output
+        return str(False), output
 
 
 def unit_test():
