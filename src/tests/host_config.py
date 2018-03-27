@@ -17,6 +17,7 @@ import logging
 
 from src.core import Host
 from src.util import HostSession, LogUtil
+from src.env_conf import settings
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,15 +32,15 @@ def host_config(keep_defaults=False):
     :param keep_defaults: (bool) if True, skips the configuration of host and just gets the values of default settings on host
     :return: (bool) True If all optimizations are applied successfully else False.
     """
-    hosts = json.load(open(r'env_conf\host.json'))
+    hosts = settings.getValue('HOST_DETAILS')
     # Create object of HostConfig() to access functions
     config_host = Host.HostConfig()
-    for host in hosts['HOST_DETAILS']:
+    for host in hosts:
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         _NICS = host['NICS'].split(',')
         ver = config_host.get_host_version(client)
         if ver.find('6.5') > -1:
-            params = hosts['ESXI65']
+            params = settings.getValue('ESXI65')
             _LOGGER.info(f'ESXi version details: {ver}')
             _LOGGER.info(f'Checking if Hyper threading enabled: {config_host.is_hyperthreading_enabled(client)}')
             success, message = config_host.config_hyperthreading(client, enable=params["ENABLE_HYPERTHREADING"])
@@ -87,7 +88,7 @@ def host_config(keep_defaults=False):
                                      : config success = {config_host.config_tx_split(client, nic, enable=params["ENABLE_TX_SPLIT"])}')
 
         else:
-            params = hosts['ESXI60U2']
+            params = settings.getValue('ESXI60U2')
             _LOGGER.info(ver)
             _LOGGER.info(f'Hyper threading enabled: {config_host.is_hyperthreading_enabled(client)}')
             _LOGGER.info(

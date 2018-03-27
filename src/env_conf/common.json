@@ -1,0 +1,9 @@
+{
+"LOG_DIR": "C:\\Users\\savi\\Desktop",
+
+"LOG_FILE_DEFAULT": "logs.log",
+
+"VERBOSITY": "info",
+
+"NTP_SERVER": "10.107.182.200"
+}

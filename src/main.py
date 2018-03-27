@@ -7,13 +7,12 @@ import sys
 import logging
 import os
 import argparse
-import threading
+import json
 
 from src.util import HostSession, LogUtil
 from src.env_conf import settings
 from src.tests import host_config
-from src.tests import vm_config
-from src.core.traffic_generator import Trex
+from src.tests import vm_deploy
 
 
 _CURR_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -38,7 +37,13 @@ def parse_args():
     parser.add_argument('-s', '--list-settings', action='store_true',
                         help='list effective settings configuration and exit')
     parser.add_argument('-v', '--verbose', action='store_true',
-                        help='list effective settings configuration and exit')
+                        help='Set verbosity level for console output as DEBUG; default is INFO')
+    parser.add_argument('-l', '--list-testcases', action='store_true', help='get a list of testcases' )
+    parser.add_argument('-g', '--get-testcase', action="store", type=str,
+                        help='get details of specified testcase', metavar=('TESTCASE',))
+    parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
+                        help='Run test for specified test case;provide'
+                             ' a comma seperated list for running multiple tests')
     args = vars(parser.parse_args())
 
     return args
@@ -52,10 +57,18 @@ def handle_list_options(args):
     if args['list_settings']:
         print(str(settings))
         sys.exit(0)
-
-    if args['list_default_settings']:
-        print(str(settings))
+    if args['list_testcases']:
+        if len(settings.getValue('TESTCASES')) > 0:
+            print(settings.getValue('TESTCASES'))
+        else:
+            print("No defined testcases found")
         sys.exit(0)
+    if args['get_testcase']:
+        print(args['get_testcase'])
+        if settings.getValue('TESTCASES')[args['get_testcase']]:
+            print(settings.getValue('TESTCASES')[args['get_testcase']])
+        else:
+            print("No defined testcase found by that name.")
 
 
 def configure_logging(level):
@@ -86,8 +99,9 @@ def main():
     args = parse_args()
 
     # configure settings
-
+    print("Loading configuration file values in current session...")
     settings.load_from_dir(os.path.join(_CURR_DIR, 'env_conf'))
+    print("Done.")
 
     # load command line parameters first in case there are settings files
     # to be used
@@ -98,19 +112,24 @@ def main():
     settings.load_from_dict(args)
 
     # if required, handle list-* operations
+    print("Scanning for command line arguments...")
     handle_list_options(args)
+    print("Done.")
 
     if(args['verbose']):
         configure_logging('debug')
     else:
         configure_logging(settings.getValue('VERBOSITY'))
 
-    host_config.host_config(settings)
-    # vm_config.vm_config(settings)
-    #vm_config.vm_config(settings)
-    t1 = threading.Thread(target=Trex.trafficGen())
-    t1.start()
-    t1.join()
+
+
+    # host_config.host_config()
+
+    # Deploy vnfs based on the vnf.json file
+    #_LOGGER.info('Initiating VM deployment on host')
+    #vm_deploy.deploy_vm()
+    #_LOGGER.info('VM Deployment complete')
+
     """
     hosts = json.load(open(r'env_conf\host.json'))
     for host in hosts['HOST_DETAILS']:
@@ -120,11 +139,11 @@ def main():
             print(stdout.readline()[:-2].split(':')[1][1:].strip('"'))
             print("{0}".format(True if [x.strip().strip('"') for x in stdout.readline().strip()[:-1].split(':')].__contains__('ixgben') else False))
             #for line in stdout:
-             #   print(line.strip(''))
+             #   print(line.strip('\n'))
             HostSession.HostSession().disconnect(sess)
         else:
             _LOGGER.error("Unable to connect.")
     """
 
-#if __name__ == 'main':
+
 main()

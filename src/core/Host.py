@@ -46,7 +46,7 @@ class HostConfig:
         _LOGGER.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
-        return True, output if re.sub(' +', ' ', output.strip()).split(' ')[-3].upper() == 'TRUE' else False, output
+        return str(True), output if re.sub(' +', ' ', output.strip()).split(' ')[-3].upper() == 'TRUE' else str(False), output
 
     def config_hyperthreading(self, client, enable):
         """
@@ -60,7 +60,11 @@ class HostConfig:
         else:
             command = f'esxcli system settings kernel set -s hyperhreading -v {enable}'
             stdin, stdout, stderr = client.exec_command(command)
-            return False if stderr.read() else True
+            output = stdout.read().decode()
+            if self.is_hyperthreading_enabled(client) == enable:
+                return str(False), output
+            else:
+                return str(False), output
 
     def verify_nic_driver(self, client, vmnic, driver):   #, version
         """
@@ -93,11 +97,11 @@ class HostConfig:
             stdin, stdout, stderr = client.exec_command(f' esxcli system module load -m {driver}')
             output1 = stdout.read().decode()
             if self.verify_nic_driver(client, vmnic, driver):
-                return True, output
+                return str(True), output
             else:
-                return False, output
+                return str(False), output
         else:
-            return False, f'{driver} not present on host'
+            return str(False), f'{driver} not present on host'
 
     def is_fcoe_enabled(self, client):
         """

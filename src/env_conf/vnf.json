@@ -1,0 +1,5 @@
+{
+  "VM_NAME": "TESTDPDK",
+  "DATASTORE": "Datastore 2",
+  "NETWORKS": "VM Network,VM Network"
+}
