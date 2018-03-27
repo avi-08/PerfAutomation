@@ -42,7 +42,7 @@ class VmUtility:
             print(f'numa node in vmx : {status}')
             return status
         else:
-            return ''
+            return False
 
     # Get VMid
     def get_vm_id(self, client, vmname):
@@ -130,7 +130,7 @@ class VmUtility:
         :return: number of the cpu core for the virtual machine.
         """
         _LOGGER.debug(f'Eccuting command : cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | gerp numvcpus -i')
-        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep ether -i')
+        stdin, stdout, stderr = client.exec_command(f'cat vmfs/volumes/{self.get_datastore(client, vmname)}/{vmname}/test.vmx | grep numvcpus -i')
         st = stdout.read().decode()
         m = re.search('"(.*?)"', st)
         if m:
@@ -139,6 +139,8 @@ class VmUtility:
             vcpu = vcpu.strip('"')
             # print(vcpu)
             return vcpu
+        else:
+            return 0
 
 
     #Getting the hardware Details
@@ -163,7 +165,7 @@ class VmUtility:
         st = stdout.read().decode()
         # m = re.search('\d', st)
         vm_vnic = [int(s) for s in re.findall(r'-?\d+?\d*', st)]
-        print(vm_vnic)
+        # print(vm_vnic)
         if len(vm_vnic):
             return vm_vnic
         else:

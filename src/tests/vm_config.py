@@ -2,6 +2,7 @@ from src.core.vnf import VmTuning
 from src.util import HostSession
 from src.util import VmUtil
 from src.core import Host
+from src.env_conf import settings
 import json
 import logging
 
@@ -9,12 +10,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def vm_config(keep_defaults=False):
-    hosts = json.load(open(r'env_conf\host.json'))
+    hosts = settings.getValue('HOST_DETAILS')
+    print(hosts)
     vm_conf = json.load(open(r'env_conf\vm.json'))
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
     conf_host = Host.HostConfig()
-    for host in hosts['HOST_DETAILS']:
+    for host in hosts:
         # print(host['HOST'], host['USER'], host['PASSWORD'])
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         # print(client)
@@ -76,12 +78,14 @@ def vm_config(keep_defaults=False):
                 else:
                     _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
 
-                _LOGGER.info(f'checking the TX thread Allocation : {vmTune.verify_tx_thread_allocation(client, vm)}')
-                status = vmTune.config_tx_thread_allocation(client, vm)
-                if status:
-                    _LOGGER.info(f'changing the TX thread allocation : {status}')
-                else:
-                    _LOGGER.error(f'changing the TX thread allocation : {status}')
+                for vnic in set(vmUtil.get_vnic_no(client, vm)):
+                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vmTune.verify_tx_thread_allocation(client, vm,vnic)}')
+                    status = vmTune.config_tx_thread_allocation(client, vm, vnic)
+                    print (f'tx tread {status}')
+                    if status:
+                        _LOGGER.info(f'changing the TX thread allocation for vnic{vnic}: {status}')
+                    else:
+                        _LOGGER.error(f'changing the TX thread allocation  for vnic{vnic}: {status}')
 
                 _LOGGER.info(f'Checking the SysContext : {vmTune.verify_sys_context(client,vm,param["VM_SYSCONTEXT"])}')
                 status = vmTune.config_sys_context(client,vm,param["VM_SYSCONTEXT"])
@@ -97,6 +101,7 @@ def vm_config(keep_defaults=False):
                         _LOGGER.info(f'changing NUMA value for {nic}:{status}')
                     else:
                         _LOGGER.error(f'changing NUMA value for {nic}:{status}')
+                vmTune.clean_file(client, vm)
                 vmUtil.power_on_vm(client, vm)
             else:
                 """
@@ -149,12 +154,13 @@ def vm_config(keep_defaults=False):
                 else:
                     _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
 
-                _LOGGER.info(f'checking the TX thread Allocation : {vmTune.verify_tx_thread_allocation(client, vm)}')
-                status = vmTune.config_tx_thread_allocation(client, vm)
-                if status:
-                    _LOGGER.info(f'changing the TX thread allocation : {status}')
-                else:
-                    _LOGGER.error(f'changing the TX thread allocation : {status}')
+                for vnic in set(vmUtil.get_vnic_no(client, vm)):
+                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vmTune.verify_tx_thread_allocation(client, vm,vnic)}')
+                    status = vmTune.config_tx_thread_allocation(client, vm, vnic)
+                    if status:
+                        _LOGGER.info(f'changing the TX thread allocation for vnic{vnic}: {status}')
+                    else:
+                        _LOGGER.error(f'changing the TX thread allocation  for vnic{vnic}:: {status}')
 
                 _LOGGER.info(f'Checking the SysContext : {vmTune.verify_sys_context(client,vm,param["VM_SYSCONTEXT"])}')
                 status = vmTune.config_sys_context(client, vm, param["VM_SYSCONTEXT"])
@@ -173,6 +179,7 @@ def vm_config(keep_defaults=False):
                     else:
                         _LOGGER.error(f'changing NUMA value for {nic}:{status}')
                 """
+                vmTune.clean_file(client,vm)
                 vmUtil.power_on_vm(client, vm)
         HostSession.HostSession().disconnect(client)
 
@@ -202,4 +209,4 @@ def vm_config():
         print('verify_sys_context : {}'.format(VmTuning.verify_sys_context(client, vmname, 3)))
         client.close()
 """
-# vm_config1()
+vm_config()

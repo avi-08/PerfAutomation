@@ -32,6 +32,18 @@ class VmTunning :
     """
         configration function for the Virtual machine optimization
     """
+    #cleaning the file
+    def clean_file (self, session, vmname):
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+        data = stdout.read().decode()
+        data = data.split('\n')
+        res = ''
+        for d in data:
+            if d != '':
+                res += d.strip() + '\n'
+        res = res.replace('"', '\\"')
+        # print( data )
+        stdin, stdout, stderr = session.exec_command(f'echo "{res}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
 
     # configration of the latency sensitivity
     def config_latency_sensitivity(self, session, vmname): 
@@ -69,28 +81,28 @@ class VmTunning :
                 return False if stderr.read() else True
 
     # configuring the TX thread allocation
-    def config_tx_thread_allocation(self, session, vmname):
-        if self.verify_tx_thread_allocation(session, vmname):
+    def config_tx_thread_allocation(self, session, vmname, vnic):
+        if self.verify_tx_thread_allocation(session, vmname, vnic):
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            for vnic in set(vmUtil.get_vnic_no(session, vmname)):
-                stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ctxPerDev -i')
-                if stderr.read():
-                    return False
-                else:
-                    r = stdout.read().decode()
-                    flag = re.search('"(.*?)"', r)
-                    if flag:
-                        data = data.replace(f'ethernet{vnic}.ctxPerDev = "0"',f'ethernet{vnic}.ctxPerDev = "1"')
-                        data = data.replace('"', '\\"')
-                        stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vnic}/{vmname}/test.vmx')
-                        return False if stderr.read() else True
-                    else:
-                        data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.ctxPerDev = "1"'
-                        data = data.replace('"', '\\"')
-                        stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vnic}/{vmname}/test.vmx')
-                        return False if stderr.read() else True
+            #for vnic in set(vmUtil.get_vnic_no(session, vmname)):
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep ethernet{vnic}.ctxPerDev -i')
+            r = stdout.read().decode()
+            flag = re.search('"(.*?)"', r)
+            # print(f'ethernet{vnic}.ctxPerDev : {flag}')
+            if flag:
+                data = data.replace(f'ethernet{vnic}.ctxPerDev = "0"', f'ethernet{vnic}.ctxPerDev = "1"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
+            else:
+                # print(f'addding tx thread')
+                data += f'ethernet{vnic}.ctxPerDev = "1"'
+                # print(f'addding tx thread {data}')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
+                return False if stderr.read() else True
 
 
     # configuration SysContext
@@ -126,7 +138,8 @@ class VmTunning :
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep sched.cpu.min -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
-            max_size = vmUtil.get_vcpu_core(session, vmname)* vmUtil.get_cpu_speed(session)
+            max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.get_cpu_speed(session))
+            # print(f'config cpu reserve : {max_size}')
             if st:
                 old = st.group()
                 old = old.strip('"')
@@ -211,24 +224,27 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx | grep numa.nodeAffinity')
+            a = stdout.read().decode()
             e = vmUtil.get_numa_node(session, vmname)
-            if e == '' or e == " ":
-                data += f'numa.nodeAffinity = "{vmUtil.get_numa_node(session, vmname)}"'
+            if a:
+                data += f'numa.nodeAffinity = "{e}"'
                 data = data.replace('"', '\\"')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
                 return False if stderr.read() else True
+                # return True
             else:
                 stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
                 r = stdout.read().decode()
                 st = re.search('\d', r)
                 if st:
                     numa = st.group()
-                    print(f"config numa aff  to :{numa}")
                     old = vmUtil.get_numa_node(session, vmname)
                     data = data.replace(f'numa.nodeAffinity = "{old}"', f'numa.nodeAffinity = "{numa}"')
                     data = data.replace('"', '\\"')
                     stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/test.vmx')
                     return False if stderr.read() else True
+                    # return True
                 else:
                     _LOGGER.error(f'unable to configure node affinity for vmnic : {vmnic}')
 
@@ -261,8 +277,8 @@ class VmTunning :
         r = stdout.read().decode()
         _LOGGER.debug(f'{r}')
         st = re.search('"(.*?)"', r)
-        # max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.cpu_speed(session))
-        max_size = 11
+        max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.get_cpu_speed(session))
+        print(f'max_size cpu reservation: {max_size}')
         if st:
             status = st.group()
             return True if int(status.strip('"')) == max_size else False
@@ -316,17 +332,19 @@ class VmTunning :
                 return False
 
     # verification of the Tx thread allocation is enable
-    def verify_tx_thread_allocation(self, session, vmname):
+    def verify_tx_thread_allocation(self, session, vmname, vnic):
         for vnic in set(vmUtil.get_datastore(session, vmname)):
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ctxPerDev -i')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ctxPerDev -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ethernet{vnic}ctxPerDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/test.vmx | grep ethernet{vnic}.ctxPerDev -i')
             r = stdout.read().decode()
+            # print(f'verify tx :{r}')
             _LOGGER.debug(f'{r}')
             st = re.search('"(.*?)"', r)
             if st:
                 status = st.group()
                 return True if int(status.strip('"')) == 1 else False
             else:
+                # print('nope')
                 return False
 
     # verification of sysContext
@@ -350,7 +368,7 @@ class VmTunning :
         if st:
             numa = st.group()
             old = vmUtil.get_numa_node(session, vmname)
-            print(f'True value : {numa} \n exist value : {old}')
+            # print(f'True value : {numa} \n exist value : {old}')
             return True if old == numa else False
         else:
             return False
