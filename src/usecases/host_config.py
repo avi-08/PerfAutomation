@@ -1,6 +1,6 @@
 """
     This is a script that will call functions to verify, apply and validate hypervisor level optimizations.
-    ## Note: The BIOS level optimizations are not supported with the 'exception' of hyperthreading. They need to be applied manually.
+    ## Note: The BIOS level optimizations are not supported. They need to be applied manually.
     This script tunes ESXi hosts for following properties according to best practices for the particular version of host
     1. Check if appropriate NIC driver and driver version are loaded and running on host;configurations made accordingly
     2. Check if driver options(FCoE, RSS) are configured; configurations made accordingly
@@ -9,7 +9,8 @@
     5. Check if Queue pairing is enabled; configurations made accordingly
     6. Check if TX split mode is enabled; configurations made accordingly
     These checks are performed as per the values provided in the host.conf file. Tester can choose to go with the
-    default configs of the ESXi host or to change some of them or to change them all.
+    default configs of the ESXi host or to change some of them or to change them all. Command line switches are provided
+    for the corresponding usecase.
 
 """
 import logging
@@ -23,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def host_config(keep_defaults=False):
     """
-    script for performing host optimizations with values specified in host.json
+    Apply host optimizations with values specified in host.json(BIOS optimizations not supported)
     Steps involved:
     1. Login to hosts using SSH client
     2. Perform optimizations

@@ -16,7 +16,6 @@ import logging
 
 __author__ = "Avi Sharma"
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
