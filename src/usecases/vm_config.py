@@ -1,7 +1,6 @@
-from src.core.vnf import VmTuning
+from src.core.vm import VmTuning, VmUtil
 from src.util import HostSession
-from src.util import VmUtil
-from src.core import Host
+from src.core.host import Host
 from src.env_conf import settings
 import json
 import logging

@@ -12,11 +12,10 @@
     default configs of the ESXi host or to change some of them or to change them all.
 
 """
-import json
 import logging
 
-from src.core import Host
-from src.util import HostSession, LogUtil
+from src.core.host import Host
+from src.util import HostSession
 from src.env_conf import settings
 
 _LOGGER = logging.getLogger(__name__)

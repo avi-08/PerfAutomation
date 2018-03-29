@@ -7,26 +7,17 @@ import sys
 import logging
 import os
 import argparse
-import json
+import re
 
 from src.util import HostSession, LogUtil
 from src.env_conf import settings
 from src.core.traffic_generator import Trex
-from src.tests import host_config
-from src.tests import vm_deploy
-from src.tests import vm_config
+from src.usecases import host_config
+from src.usecases import vm_deploy
+from src.usecases import vm_config
 
 
 _CURR_DIR = os.path.dirname(os.path.realpath(__file__))
-
-LOGGING_LEVELS = {
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warning': logging.WARNING,
-    'error': logging.ERROR,
-    'critical': logging.CRITICAL
-}
-
 _LOGGER = logging.getLogger()
 
 
@@ -44,11 +35,18 @@ def parse_args():
     parser.add_argument('-g', '--get-testcase', action="store", type=str,
                         help='get details of specified testcase', metavar=('TESTCASE',))
     parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
-                        help='Run test for specified test case;provide'
-                             ' a comma seperated list for running multiple tests')
+                        help='Run test for given test case'
+                             '; a comma seperated list for running multiple tests')
+    parser.add_argument('--list-operations', action='store_true', help='get a list of all available operations')
+    parser.add_argument('--perform', action='store', type=str, choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic', 'monitoring', 'reporting', 'cleanup'],
+                        help='Perform given operation; provide ', metavar=('OPERATION',))
     args = vars(parser.parse_args())
 
     return args
+
+
+def get_usecases():
+    pass
 
 
 def handle_list_options(args):
@@ -67,31 +65,15 @@ def handle_list_options(args):
         sys.exit(0)
     if args['get_testcase']:
         print(args['get_testcase'])
-        if settings.getValue('TESTCASES')[args['get_testcase']]:
+        if settings.getValue('TESTCASES')[0]['NAME'] == [args['get_testcase']]:
             print(settings.getValue('TESTCASES')[args['get_testcase']])
         else:
             print("No defined testcase found by that name.")
+        sys.exit(0)
 
-
-def configure_logging(level):
-    """Configure logging.
-    """
-    log_file_default = os.path.join(settings.getValue('LOG_DIR'), settings.getValue('LOG_FILE_DEFAULT'))
-
-    global _LOGGER
-    _LOGGER.setLevel(logging.DEBUG)
-
-    formatter = logging.Formatter('%(asctime)s [%(levelname)-8s]: (%(name)s) - %(message)s', datefmt='%Y-%m-%dT%H:%M:%SZ')
-
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(LOGGING_LEVELS[level])
-    stream_handler.setFormatter(formatter)
-    _LOGGER.addHandler(stream_handler)
-
-    file_handler = logging.FileHandler(filename=log_file_default)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    _LOGGER.addHandler(file_handler)
+    if args['list_operations']:
+        get_usecases()
+        sys.exit(0)
 
 
 def main():
@@ -119,19 +101,35 @@ def main():
     print("Done.")
 
     if(args['verbose']):
-        configure_logging('debug')
+        LogUtil.LogUtil().configure_logging(_LOGGER, 'debug')
     else:
-        configure_logging(settings.getValue('VERBOSITY'))
+        LogUtil.LogUtil().configure_logging(_LOGGER, settings.getValue('VERBOSITY'))
 
+    if args['perform'] == 'host_config':
+        _LOGGER.info('Initiating host optimizations.')
+        if host_config.host_config() == False:
+            _LOGGER.error('Unable to configure host optimizations.')
+            sys.exit(0)
+        else:
+            _LOGGER.info('Host optimizations successful.')
 
-    #trex = Trex.Trex()
-    # host_config.host_config()
-    #vm_config.vm_config()
     # Deploy vnfs based on the vnf.json file
-    #_LOGGER.info('Initiating VM deployment on host')
-    #vm_deploy.deploy_vm()
-    #_LOGGER.info('VM Deployment complete')
-    #trex.trafficGen()
+    if args['perform'] == 'vm_deploy':
+        _LOGGER.info('Initiating VM deployment on host')
+        if vm_deploy.VMDeploy().deploy_vm() == False:
+            _LOGGER.error('Unable to deploy VM.')
+            sys.exit(0)
+        else:
+            _LOGGER.info('VM Deployment complete')
+
+    if args['perform'] == 'vm_config':
+        _LOGGER.info('Initiating VM optimization')
+        vm_config.vm_config()
+        _LOGGER.info('VM optimization complete')
+
+    if args['perform'] == 'run_traffic':
+        trex = Trex.Trex()
+        trex.trafficGen()
     """
     hosts = json.load(open(r'env_conf\host.json'))
     for host in hosts['HOST_DETAILS']:

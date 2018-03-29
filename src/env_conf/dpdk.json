@@ -1,3 +1,4 @@
+//File that holds configurations to be applied for dpdk applications running on the vms, like forwarding info
 {
 
 }

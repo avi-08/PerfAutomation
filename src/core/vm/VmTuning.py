@@ -15,7 +15,7 @@
 """
 
 from __future__ import print_function
-from src.util import VmUtil
+from src.core.vm import VmUtil
 import re
 import logging
 

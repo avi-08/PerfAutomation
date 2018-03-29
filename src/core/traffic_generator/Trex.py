@@ -1,7 +1,7 @@
 from src.util import HostSession
 import json, threading
 import logging
-from src.tools import Monitoring
+from src.usecases import monitoring
 from src.env_conf import settings
 
 _LOGGER = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ class Trex:
         print(host)
         client = HostSession.HostSession().connect(trafficGen['IP'], trafficGen['USERNAME'], trafficGen['PASSWORD'], False)
         self.monitorTest(client)
-        file_data = self.get_data_dict(Monitoring.getTraffic(client, 'tc-1.1.txt'))
+        file_data = self.get_data_dict(monitoring.getTraffic(client, 'tc-1.1.txt'))
         # print(Monitoring.getTraffic(client, '/home/trex/Results/tc-1.1.txt'))
         _LOGGER.info(f'{file_data}')
         hosts = settings.getValue('HOST_DETAILS')
@@ -106,8 +106,8 @@ class Trex:
             for frame in self.result_data['framesizes']:
                 _LOGGER.info(f'Running traffic with Frame Size : {frame}')
                 self.monitorTest(client, frame)
-                t1 = threading.Thread(target=Monitoring.monitorNetStats, args=(client2, 5, 'netstats.logs'))
-                t2 = threading.Thread(target=Monitoring.monitorSchedStats, args=(client3, 'scstats.logs'))
+                t1 = threading.Thread(target=monitoring.monitorNetStats, args=(client2, 5, 'netstats.logs'))
+                t2 = threading.Thread(target=monitoring.monitorSchedStats, args=(client3, 'scstats.logs'))
                 t3 = threading.Thread(target=self.monitorTest, args=(client, frame))
                 _LOGGER.info(f'creating the thread for Running traffic with {frame} frame size')
                 t3.start()
@@ -119,10 +119,10 @@ class Trex:
                 t1.join()
                 t2.join()
                 # temp = Monitoring.getNetStats(client, 'netstats.logs')
-                netstats = eval(Monitoring.getNetStats(client2, 'netstats.logs'))
+                netstats = eval(monitoring.getNetStats(client2, 'netstats.logs'))
                 print(netstats)
                 self.get_rx_thread(netstats)
-                schedstats = Monitoring.getSchedStats(client3, 'scstats.logs')
+                schedstats = monitoring.getSchedStats(client3, 'scstats.logs')
                 _LOGGER.info(f'Result Data for Graph : {self.result_data}')
 
         # stdin, stdout, stderr = client.exec_command(f'')

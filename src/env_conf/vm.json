@@ -2,7 +2,7 @@
   "ESXI_65": {
     "ADAPTER_TYPE":"vmxnet3",
 
-    "VM_NAMES" :["TESTDPDK1"],
+    "VM_NAMES" :["ubuntu-dpdk"],
 
     "VM_HARDWARE_VERSION": 13,
 
@@ -12,7 +12,7 @@
  "ESXI_60U2": {
     "ADAPTER_TYPE":"vmxnet3",
 
-    "VM_NAMES" :["TESTDPDK1"],
+    "VM_NAMES" :["ubuntu-dpdk"],
 
     "VM_HARDWARE_VERSION": 11,
 

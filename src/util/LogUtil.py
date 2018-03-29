@@ -18,13 +18,13 @@ class LogUtil:
     def __init__(self):
         pass
 
-    def configure_logging(self, level='info'):
+    def configure_logging(self, logger,level='info'):
         """
 
         """
         log_file_default = os.path.join(settings.getValue('LOG_DIR'), settings.getValue('LOG_FILE_DEFAULT'))
 
-        global _LOGGER
+        _LOGGER = logger
         _LOGGER.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter('%(asctime)s [%(levelname)-8s]: (%(name)s) - %(message)s', datefmt='%Y-%m-%dT%H:%M:%SZ')
