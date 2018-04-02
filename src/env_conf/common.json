@@ -1,7 +1,9 @@
 {
-"LOG_DIR": "C:\\Users\\savi\\Desktop",
+"LOG_DIR": "C:\\Users\\savi\\Desktop\\PAFLogs",
 
-"LOG_FILE_DEFAULT": "logs.log",
+"LOG_FILE_NAME": "PAFlog_",
+
+"PARAMIKO_LOG_FILE": "paramiko_logs.log",
 
 "VERBOSITY": "info",
 

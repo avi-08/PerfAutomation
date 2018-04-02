@@ -15,20 +15,18 @@ from src.usecases import vm_deploy
 from src.usecases import vm_config
 
 
-_CURR_DIR = os.path.dirname(os.path.realpath(__file__))
-_LOGGER = logging.getLogger()
-
-
 def main():
     """
     Main Script that controls the framework execution; This is the starting point of the framework.
     """
     args = ParserUtil.Parser().parse_cmd_args()
+    logger = logging.getLogger()
+
 
     print(host_config.__doc__)
     # configure settings
     print("Loading configuration file values in current session...")
-    settings.load_from_dir(os.path.join(_CURR_DIR, 'env_conf'))
+    settings.load_from_dir(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'env_conf'))
     print("Done.")
 
     # load command line parameters first in case there are settings files
@@ -45,53 +43,56 @@ def main():
     print("Done.")
 
     if(args['verbose']):
-        LogUtil.LogUtil().configure_logging(_LOGGER, 'debug')
+        LogUtil.LogUtil().configure_logging(logger, 'debug')
     else:
-        LogUtil.LogUtil().configure_logging(_LOGGER, settings.getValue('VERBOSITY'))
+        LogUtil.LogUtil().configure_logging(logger, settings.getValue('VERBOSITY'))
 
     # Check if there are any specific operations to perform, otherwise continue the normal framework execution.
     if args['perform']:
+        # Apply host optimizations
         if args['perform'] == 'host_config':
-            _LOGGER.info('Initiating host optimizations.')
+            logger.info('Initiating host optimizations.')
             if host_config.host_config() == False:
-                _LOGGER.error('Unable to configure host optimizations.')
+                logger.error('Unable to configure host optimizations.')
                 sys.exit(0)
             else:
-                _LOGGER.info('Host optimizations successful.')
+                logger.info('Host optimizations successful.')
 
         # Deploy vnfs based on the vnf.json file
         if args['perform'] == 'vm_deploy':
-            _LOGGER.info('Initiating VM deployment on host')
+            logger.info('Initiating VM deployment on host')
             if vm_deploy.VMDeploy().deploy_vm() == False:
-                _LOGGER.error('Unable to deploy VM.')
+                logger.error('Unable to deploy VM.')
                 sys.exit(0)
             else:
-                _LOGGER.info('VM Deployment complete')
+                logger.info('VM Deployment complete')
 
+        # Apply VM optimizations
         if args['perform'] == 'vm_config':
-            _LOGGER.info('Initiating VM optimization')
+            logger.info('Initiating VM optimization')
             vm_config.vm_config()
-            _LOGGER.info('VM optimization complete')
+            logger.info('VM optimization complete')
 
+        # Run traffic from traffic generator
         if args['perform'] == 'run_traffic':
             trex = Trex.Trex()
             trex.trafficGen()
     else:
-        _LOGGER.info('Initiating host optimizations.')
+        logger.info('Initiating host optimizations.')
         if host_config.host_config() == False:
-            _LOGGER.error('Unable to configure host optimizations.')
+            logger.error('Unable to configure host optimizations.')
             sys.exit(0)
         else:
-            _LOGGER.info('Host optimizations successful.')
-        _LOGGER.info('Initiating VM deployment on host')
+            logger.info('Host optimizations successful.')
+        logger.info('Initiating VM deployment on host')
         if vm_deploy.VMDeploy().deploy_vm() == False:
-            _LOGGER.error('Unable to deploy VM.')
+            logger.error('Unable to deploy VM.')
             sys.exit(0)
         else:
-            _LOGGER.info('VM Deployment complete')
-        _LOGGER.info('Initiating VM optimization')
+            logger.info('VM Deployment complete')
+        logger.info('Initiating VM optimization')
         vm_config.vm_config()
-        _LOGGER.info('VM optimization complete')
+        logger.info('VM optimization complete')
         trex = Trex.Trex()
         trex.trafficGen()
 

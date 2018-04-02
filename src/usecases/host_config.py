@@ -38,23 +38,12 @@ def host_config(keep_defaults=False):
     for host in hosts:
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         _NICS = host['NICS'].split(',')
+        _LOGGER.info(f'Getting ESXi version details')
         ver = config_host.get_host_version(client)
-        _LOGGER.info(f'Getting ESXi version details: {ver}')
         _LOGGER.info('Start applying optimizations for the specific Esxi version')
-        _LOGGER.info('Getting configuration settings from host.json')
         if ver.find('6.5') > -1:
+            _LOGGER.info('Getting configuration settings from host.json')
             params = settings.getValue('ESXI65')
-            _LOGGER.info(f'Hyperthreading to be enabled: {params["ENABLE_HYPERTHREADING"]}')
-            _LOGGER.info('Configuring hyperthreading')
-            success, message = config_host.config_hyperthreading(client, enable=params["ENABLE_HYPERTHREADING"])
-            if eval(success):
-                _LOGGER.info(f'Hyperthreading configuration success:{eval(success)}')
-            else:
-                _LOGGER.error(f'Hyperthreading configuration success: {eval(success)}')
-                _LOGGER.info(f'host output: {message}')
-                HostSession.HostSession().disconnect(client)
-                return False
-
             _LOGGER.info(f'Configuring NICS {_NICS} for driver module: {params["NIC_DRIVER"]}')
             for nic in _NICS:
                 _LOGGER.info(f'Configuring {nic}')
@@ -123,6 +112,7 @@ def host_config(keep_defaults=False):
                     HostSession.HostSession().disconnect(client)
                     return False
         else:
+            _LOGGER.info('Getting configuration settings from host.json')
             params = settings.getValue('ESXI60U2')
             _LOGGER.info(ver)
             _LOGGER.info(f'Hyper threading enabled: {config_host.is_hyperthreading_enabled(client)}')

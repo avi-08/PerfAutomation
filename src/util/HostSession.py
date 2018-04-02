@@ -18,7 +18,7 @@ class HostSession:
         """
         pass
 
-    def connect(self, host, user, password, ssl=True, port=22):
+    def connect(self, host, user, password, ssl=False, port=22):
         """
         Function that creates a ssh session with the host and returns an object of paramiko.SSHClient
         :param host: host(FQDN or IP) to connect with

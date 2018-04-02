@@ -1,6 +1,7 @@
 # Contains class for accessing all configuration files
 
 import os
+import sys
 import copy
 import re
 import pprint
@@ -81,10 +82,19 @@ class Settings:
         """Update ``settings`` with values found in module at ``path``.
         """
         import json
-        data = json.load(open(path))
-        if data.items():
-            for key in data:
-                setattr(self, key, data[key])
+        try:
+            print(f'Fetching data from {path}')
+            with open(path) as f:
+                data = json.load(f)
+                if data.items():
+                    for key in data:
+                        setattr(self, key, data[key])
+        except FileNotFoundError as ferr:
+            print(f'File Not found error: {ferr.filename} {ferr.args}')
+            sys.exit(0)
+        except ValueError as e:
+            print(f'Value Error: {e.args}')
+            sys.exit(0)
 
     def load_from_dir(self, dir_path):
         """Update ``settings`` with contents of the .conf files at ``path``.
@@ -116,7 +126,7 @@ class Settings:
 
     def load_from_dict(self, conf):
         """
-        Update ``settings`` with values found in ``conf``.
+        Update ``settings`` with values found in ``.json``.
 
         Unlike the other loaders, this is case insensitive.
         """

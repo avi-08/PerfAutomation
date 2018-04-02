@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 
 from src.env_conf import settings
 
@@ -25,14 +26,18 @@ class Parser:
                             help='Run test for given test case'
                                  '; a comma seperated list for running multiple tests')
         parser.add_argument('--list-operations', action='store_true', help='get a list of all available operations')
-        parser.add_argument('--perform', action='store', type=str, choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic', 'monitoring', 'reporting', 'cleanup'],
+        parser.add_argument('-p', '--perform', action='store', type=str, choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic', 'monitoring', 'reporting', 'cleanup'],
                             help='Perform given operation; provide ', metavar=('OPERATION',))
         args = vars(parser.parse_args())
 
         return args
 
     def get_usecases(self, dirpath):
-
+        files = os.path.join(dirpath, 'usecases')
+        for file in os.listdir(files):
+            print(file)
+            if os.path.isfile(file) and file.startswith('__') < 0:
+                print(f'{file}\t\t\t{sys.modules(file).__doc__}')
         pass
 
     def process_cmd_switches(self, args):
@@ -58,5 +63,5 @@ class Parser:
             sys.exit(0)
 
         if args['list_operations']:
-            self.get_usecases()
+            self.get_usecases(os.path.dirname(os.path.dirname(__file__)))
             sys.exit(0)
