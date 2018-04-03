@@ -10,8 +10,6 @@
 
 
 "ESXI65": {
-    "ENABLE_HYPERTHREADING": true,
-
     "ENABLE_RSS": true,
 
     "ENABLE_QUEUE_PAIRING": false,
@@ -32,8 +30,6 @@
 },
 
 "ESXI60U2": {
-    "ENABLE_HYPERTHREADING": true,
-
     "ENABLE_FCOE": false,
 
     "ENABLE_RSS": true,

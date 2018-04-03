@@ -67,6 +67,10 @@ class Parser:
             self.get_usecases(os.path.dirname(os.path.dirname(__file__)))
             sys.exit(0)
 
+        if args['list_host_optimizations']:
+            print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings'))
+            sys.exit(0)
+
     def dict_to_table(self, data, header, row_major=True):
         x = PrettyTable()
         if row_major:

@@ -88,6 +88,8 @@ class Settings:
                 data = json.load(f)
                 if data.items():
                     for key in data:
+                        if key.startswith("__"):
+                            print(key)
                         setattr(self, key, data[key])
         except FileNotFoundError as ferr:
             print(f'File Not found error: {ferr.filename} {ferr.args}')
@@ -109,7 +111,7 @@ class Settings:
 
         :returns: None
         """
-        regex = re.compile("^([a-z]?).*.json$")
+        regex = re.compile("^([a-z][A-Z])?.*\.json$")
 
         # get full file path to all files & dirs in dir_path
         file_paths = os.listdir(dir_path)

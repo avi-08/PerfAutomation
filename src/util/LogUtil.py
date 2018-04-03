@@ -22,7 +22,6 @@ class LogUtil:
     def __init__(self):
         pass
 
-    @staticmethod
     def configure_logging(self, logger, level='info'):
         """
 
@@ -51,7 +50,6 @@ class LogUtil:
         except FileNotFoundError as f:
             print(f'File not found error: {f.filename}, {f.args[1]} ')
 
-    @staticmethod
     def get_ntp_time(self):
         """
         Function to get time from NTP server

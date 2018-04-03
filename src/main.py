@@ -22,7 +22,6 @@ def main():
     args = ParserUtil.Parser().parse_cmd_args()
     logger = logging.getLogger()
 
-
     print(host_config.__doc__)
     # configure settings
     print("Loading configuration file values in current session...")
