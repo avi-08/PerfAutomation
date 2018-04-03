@@ -15,23 +15,39 @@ class Parser:
         Function to parse command line arguments
         :return: Dictionary containing command line args
         """
-        parser = argparse.ArgumentParser(prog=__file__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('-s', '--list-settings', action='store_true',
-                            help='list effective settings configuration and exit')
-        parser.add_argument('-v', '--verbose', action='store_true',
-                            help='Set verbosity level for console output as DEBUG; default is INFO')
-        parser.add_argument('-l', '--list-testcases', action='store_true', help='get a list of testcases' )
-        parser.add_argument('-g', '--get-testcase', action="store", type=str,
-                            help='get details of specified testcase', metavar=('TESTCASE',))
-        parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
-                            help='Run test for given test case'
-                                 '; a comma seperated list for running multiple tests')
-        parser.add_argument('--list-operations', action='store_true', help='get a list of all available operations')
-        parser.add_argument('-p', '--perform', action='store', type=str, choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic', 'monitoring', 'reporting', 'cleanup'],
-                            help='Perform given operation; provide ', metavar=('OPERATION',))
-        args = vars(parser.parse_args())
 
-        return args
+        def parse_cmd_args(self):
+            """
+            Function to parse command line arguments
+            :return: Dictionary containing command line args
+            """
+            parser = argparse.ArgumentParser(prog=__file__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+            parser.add_argument('-s', '--list-settings', action='store', type=str,
+                                help='list settings configuration and exit(type "all" to print all settings)',
+                                metavar=('SETTING_NAME',))
+            parser.add_argument('-v', '--verbose', action='store_true',
+                                help='Set verbosity level for console output as DEBUG; default level is INFO')
+            parser.add_argument('-e', '--list-env-details', action='store_true', help="List host details and exit")
+            parser.add_argument('--list-host-optimizations', action='store_true',
+                                help='List current host optimization parameters and exit')
+            parser.add_argument('--host-optimization-type', action='store', type=str,
+                                help='Specify host configuration type(default=standard), possible values="standard + splittx", "standard + rss", "standard + splittx + rss"',
+                                metavar=('CONFIG_TYPE',))
+            parser.add_argument('-l', '--list-testcases', action='store_true', help='get a list of testcases')
+            parser.add_argument('-g', '--get-testcase', action="store", type=str,
+                                help='get details of specified testcase', metavar=('TESTCASE',))
+            parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
+                                help='Run test for given test case'
+                                     '; a comma seperated list for running multiple tests')
+            parser.add_argument('--list-operations', action='store_true',
+                                help='get a list of all available operations and exit')
+            parser.add_argument('-p', '--perform', action='store', type=str,
+                                choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic',
+                                         'monitoring', 'reporting', 'cleanup'],
+                                help='Perform given operation; provide ', metavar=('OPERATION',))
+            args = vars(parser.parse_args())
+
+            return args
 
     def get_usecases(self, dirpath):
         files = os.path.join(dirpath, 'usecases')

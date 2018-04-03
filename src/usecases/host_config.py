@@ -148,7 +148,6 @@ def host_config(keep_defaults=False):
 
 
 def get_host_config():
-    """
     hosts = settings.getValue('HOST_DETAILS')
     # Create object of HostConfig() to access functions
     config_host = Host.HostConfig()
@@ -164,8 +163,10 @@ def get_host_config():
             for nic in _NICS:
                 config.get_nic_ring_size(client, nic)
             for nic in _NICS:
-                config.
+                config.get_split_tx_status(client, nic)
             config.get_rss(client, 'ixgben')
-            for
-        HostSession.HostSession().disconnect(client)"""
+            for nic in _NICS:
+                config.get_nic_driver(client, nic)
+
+        HostSession.HostSession().disconnect(client)
     pass
