@@ -3,6 +3,7 @@ import json, threading
 import logging
 from src.usecases import monitoring
 from src.env_conf import settings
+from src.util import ParserUtil
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class Trex:
                 self.get_rx_thread(netstats)
                 schedstats = monitoring.getSchedStats(client3, 'scstats.logs')
                 _LOGGER.info(f'Result Data for Graph : {self.result_data}')
-
+                print(ParserUtil.Parser.dict_to_table(self.result_data,'result',False))
         # stdin, stdout, stderr = client.exec_command(f'')
 
         """

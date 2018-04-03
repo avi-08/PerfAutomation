@@ -26,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def vm_config(keep_defaults=False):
     hosts = settings.getValue('HOST_DETAILS')
-    # print(hosts)
+    #print(hosts)
     vm_conf = json.load(open(r'env_conf\vm.json'))
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
@@ -37,7 +37,7 @@ def vm_config(keep_defaults=False):
         # print(client)
         # vms = vmUtil.get_vm_list(client)
         temp_vms = vm_conf['ESXI_65']['VM_NAMES']
-        # print(temp_vms)
+        #print(temp_vms)
         ver = conf_host.get_host_version(client)
         _NICS = host['NICS'].split(',')
         _LOGGER.info('Verifying optimization on virtual machine')

@@ -67,13 +67,6 @@ class Parser:
             self.get_usecases(os.path.dirname(os.path.dirname(__file__)))
             sys.exit(0)
 
-    def table_it(self, data):
-        x = PrettyTable()
-        x.field_names = ['key', 'value']
-        for i in data:
-            x.add_row([i, data[i]])
-        return x
-
     def dict_to_table(self, data, header, row_major=True):
         x = PrettyTable()
         if row_major:

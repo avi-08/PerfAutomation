@@ -23,7 +23,7 @@ class LogUtil:
         pass
 
     @staticmethod
-    def configure_logging(self, logger,level='info'):
+    def configure_logging(self, logger, level='info'):
         """
 
         """
