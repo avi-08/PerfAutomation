@@ -20,26 +20,26 @@ class VMDeploy:
             ostype = sys.platform
             if ostype.startswith('win32'):
                 folder_name = 'win32'
-                dir_name = 'C:\\Users\\savi\\Desktop\\ovftool'
+                dir_name = 'C:\\Users\\somanathr\\Desktop\\ovftool'
                 tool_path = os.path.join(dir_name, folder_name, 'ovftool.exe')
                 for hosts in settings.getValue('HOST_DETAILS'):
                     host = hosts['HOST']
                     uname = hosts['USER']
                     password = hosts['PASSWORD']
-                    cmd = [tool_path, '--acceptAllEulas', '--powerOn', f'--datastore="{datastore}"', f'--name="{vm_name}"', f'"--net:PG1={networks[0]}"', f'"--net:PG2={networks[1]}"', '"C:\\Users\\savi\\Desktop\\dpdk.ova"', f'"vi://{uname}:{password}@{host}"']
+                    cmd = [tool_path, '--acceptAllEulas', '--powerOn', f'--datastore="{datastore}"', f'--name="{vm_name}"', f'"--net:PG1={networks[0]}"', f'"--net:PG2={networks[1]}"', '"C:\\Users\\somanathr\\Desktop\\dpdk.ova"', f'"vi://{uname}:{password}@{host}"']
                     _LOGGER.debug(f'Executing command: {" ".join(cmd)}')
                     _LOGGER.info('Deploying vm. This might take a few minutes...')
                     os.system(" ".join(cmd))
                 return True
             elif ostype.startswith('linux'):
                 folder_name = 'lin64'
-                dir_name = 'C:\\Users\\savi\\Desktop\\ovftool'
+                dir_name = 'C:\\Users\\somanathr\\Desktop\\ovftool'
                 tool_path = os.path.join(dir_name, folder_name, 'ovftool.exe')
                 for hosts in settings.getValue('HOST_DETAILS'):
                     host = hosts['HOST']
                     uname = hosts['USER']
                     password = hosts['PASSWORD']
-                    cmd = [tool_path, '--acceptAllEulas', '--powerOn', f'--datastore="{datastore}"', f'--name="{vm_name}"', f'"--net:PG1={networks[0]}"', f'"--net:PG2={networks[1]}"', '"C:\\Users\\savi\\Desktop\\dpdk.ova"', f'"vi://{uname}:{password}@{host}"']
+                    cmd = [tool_path, '--acceptAllEulas', '--powerOn', f'--datastore="{datastore}"', f'--name="{vm_name}"', f'"--net:PG1={networks[0]}"', f'"--net:PG2={networks[1]}"', '"C:\\Users\\somanathr\\Desktop\\dpdk.ova"', f'"vi://{uname}:{password}@{host}"']
                     _LOGGER.debug(f'Executing command: {" ".join(cmd)}')
                     _LOGGER.info('Deploying vm. This might take a few minutes...')
                     os.system(" ".join(cmd))

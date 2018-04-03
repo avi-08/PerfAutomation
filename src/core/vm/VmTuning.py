@@ -1,19 +1,9 @@
 """
-    There are a few configurations on the VM also that impact the overall networking throughput delivered.
-    1.Verify that exclusive affinity of all vCPU are enable.
-    2.Verify CPU reservation and share are reserved and made available to VM.
-    3.Verify Memory(RAM) reservation and share are reserved and made available to VM.
-    4.Verify Latency sensitivity is taking effect.
-    5.Verify the vNIC adapter type.
-    6.Verify the vNIC TX thread allocation is set.
-    7.Verify the SysContext is set to the no. of thread to be pinned.
-    8.Verify the vm NUMA is alligned to the NUMA of the physical NIC.
 
-    The above verification are done to ensure that it will not impact the overall networking throughput delivered.
-    Configuration are done if the verification fails.
+
+
 
 """
-
 from __future__ import print_function
 from src.core.vm import VmUtil
 import re
@@ -29,11 +19,13 @@ class VmTunning :
     def __init__(self):
         pass
 
-    """
-        configration function for the Virtual machine optimization
-    """
-    #cleaning the file
     def clean_file (self, session, vmname):
+        """
+        Removing any Extra whitespaces and blank lines if any
+        :param session:  paramiko SSHClient object
+        :param vmname:  Name of the Virtual machine
+        :return:
+        """
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
         data = stdout.read().decode()
         data = data.split('\n')
@@ -42,24 +34,33 @@ class VmTunning :
             if d != '':
                 res += d.strip() + '\n'
         res = res.replace('"', '\\"')
-        # print( data )
         stdin, stdout, stderr = session.exec_command(f'echo "{res}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
 
-    # configration of the latency sensitivity
-    def config_latency_sensitivity(self, session, vmname): 
+    def config_latency_sensitivity(self, session, vmname):
+        """
+        Configure virtual machine's latency Sensitivity to high
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual machine
+        :return:
+        """
         if self.verify_latency_sensitivity(session, vmname):
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
             data = data.replace('sched.cpu.latencySensitivity = "normal"', 'sched.cpu.latencySensitivity = "high"')
             data = data.replace('"', '\\"')
-            # print( data )
             stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
             # return False if stderr.read() else True
             return True
- 
-    # configuring the NIC adapter type
+
     def config_nic_adapter_type(self, session, vmname, adapter):
+        """
+        configure the adapter type of the Virtual machine
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual machine
+        :param adapter: Type of adapter to be configured
+        :return:
+        """
         if self.verify_nic_adapter_type(session, vmname, adapter):
             return True
         else:
@@ -80,8 +81,14 @@ class VmTunning :
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
-    # configuring the TX thread allocation
     def config_tx_thread_allocation(self, session, vmname, vnic):
+        """
+        Configuring the virtual machine's Tx-thread is enabled
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :param vnic: vNIC number
+        :return:
+        """
         if self.verify_tx_thread_allocation(session, vmname, vnic):
             return True
         else:
@@ -104,9 +111,14 @@ class VmTunning :
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
-
-    # configuration SysContext
     def config_sys_context(self, session, vmname, vcpu):
+        """
+        Configure the virtual machine's number of threads to be pinned
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :param vcpu: Noumbetr of vCPU to be configured
+        :return:
+        """
         if self.verify_sys_context(session, vmname, vcpu):
             return True
         else:
@@ -129,8 +141,13 @@ class VmTunning :
                 vmUtil.power_on_vm(session, vmname)
                 return False if stderr.read() else True
 
-    # configuration of cpu reservation
     def config_cpu_reservation(self, session, vmname):
+        """
+        configuring the virtual machines's CPU reservation to it's maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual machine
+        :return:
+        """
         if self.verify_cpu_reservation(session,vmname):
             return True
         else:
@@ -153,8 +170,13 @@ class VmTunning :
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
-    # configuration cpu share
     def config_cpu_share(self, session, vmname):
+        """
+        Configuring the virtual machine's CPU share to it's maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual machine
+        :return:
+        """
         if self.verify_cpu_share(session, vmname):
             return True
         else:
@@ -175,8 +197,13 @@ class VmTunning :
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
-    # configuration on Memory share
     def config_mem_share(self, session, vmname):
+        """
+        Configuring the virtual machine's memory share to it's maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :return:
+        """
         if self.verify_mem_share(session, vmname):
             return True
         else:
@@ -197,8 +224,13 @@ class VmTunning :
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
-    # configuration on Memory reservation
     def config_mem_reservation(self, session, vmname):
+        """
+        Configuring the virtual machine's memory reservation to it's maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :return:
+        """
         if self.verify_mem_reservation(session,vmname):
             return True
         else:
@@ -215,11 +247,14 @@ class VmTunning :
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
-
-
-
-    #configuring Numa Affinity
     def config_numa_affinity(self, session, vmname, vmnic):
+        """
+        Configuring the virtual machine NUMA value to the NUMA value of the physical NIC
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :param vmnic: Name of the vmNIC
+        :return:
+        """
         if self.verify_numa_affinity(session, vmname, vmnic):
             return True
         else:
@@ -244,22 +279,51 @@ class VmTunning :
                     data = data.replace('"', '\\"')
                     stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                     return False if stderr.read() else True
-                    # return True
                 else:
                     _LOGGER.error(f'unable to configure node affinity for vmnic : {vmnic}')
 
+    def get_syscontext_value(self, session, vmname, flag):
+        """
+        Calculating the sysContext value for the virtual machine
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
+        if flag:
+            return 8
+        return 2
 
+    def get_latency_sensitivity(self, session, vmname):
+        """
+        Get latency sensitivity status
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
+        vmid = vmUtil.get_vm_id(session, vmname)
+        if vmid != '':
+            command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity ="'
+            stdin, stdout, stderr = session.exec_command(command)
+            r = stdout.read().decode()
+            mod = {}
+            if r:
+                mod['command'] = command
+                mod['out'] = r
+            else:
+                mod['command'] = command
+                mod['out'] = ''
+            return mod
 
-    """
-        verification  function for virtual machine optimization 
-    """
-
-    # latency Sensitivity
-    def verify_latency_sensitivity(self, session, vmname): 
+    def verify_latency_sensitivity(self, session, vmname):
+        """
+        Checking the latency sensitivity of the virtual machine is set to high
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
         vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
             _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
-            # print(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
             r = stdout.read().decode()
             _LOGGER.debug(f'{r}')
@@ -270,12 +334,36 @@ class VmTunning :
             else:
                 return False
 
-    # verification of CPU reservation
+    def get_cpu_reservation(self, session, vmname):
+        """
+        Get the CPU reservation details
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual machine
+        :return:
+        """
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
     def verify_cpu_reservation(self, session, vmname):
+        """
+        Checking the virtual machine's CPU reservation is set to it's maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual Machine
+        :return:
+        """
         _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i ')
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i')
         r = stdout.read().decode()
-        _LOGGER.debug(f'{r}')
+        _LOGGER.debug(f'output : {r}')
         st = re.search('"(.*?)"', r)
         max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.get_cpu_speed(session))
         _LOGGER.info(f'max size cpu reservation available : {max_size}')
@@ -283,8 +371,32 @@ class VmTunning :
             status = st.group()
             return True if int(status.strip('"')) == max_size else False
 
-    # verification of CPU share
-    def verify_cpu_share(self,session,vmname):
+    def get_cpu_share(self, session, vmname ):
+        """
+        Get the virtual machine CPU share detail
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
+    def verify_cpu_share(self, session, vmname):
+        """
+        Checking the virtual machine's CPU share is set to it's maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
         _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i ')
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i')
         r = stdout.read().decode()
@@ -294,8 +406,32 @@ class VmTunning :
             status = st.group()
             return True if status.strip('"') == 'high' else False
 
-    # verification of Memory shares
+    def get_mem_share(self, session, vmname):
+        """
+        get the virtual machine memory share detail
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
     def verify_mem_share(self, session, vmname):
+        """
+        Checking the memory share is set to it's maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
         _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
         r = stdout.read().decode()
@@ -305,9 +441,33 @@ class VmTunning :
             status = st.group()
             return True if status.strip('"') == 'high' else False
 
-    # verification of Memory reservation
+    def get_mem_reservation(self, session, vmname):
+        """
+        Get the virtual machine's memory reservation
+        :param session:
+        :param vmname:
+        :return:
+        """
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
     def verify_mem_reservation(self, session, vmname ):
-        _LOGGER.debug(f'executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
+        """
+        Checking the memory reservation is set to it's  maximum capacity
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :return:
+        """
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
         r = stdout.read().decode()
         _LOGGER.debug(f'{r}')
@@ -316,8 +476,33 @@ class VmTunning :
             status = st.group()
             return True if status.strip('"') == vmUtil.get_vm_memory(session, vmname) else False
 
-    # verification of the Virtual NIC adapter
+    def get_nic_adapter_type(self, session,vmname):
+        """
+        Get virtual machine NIC adapeter type
+        :param session:
+        :param vmname:
+        :return:
+        """
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{v_nic}.virtualDev -i'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
     def verify_nic_adapter_type(self, session, vmname, adapter):
+        """
+        Checking the virtual machine adapter type is same as the required adapter type
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :param adapter: Name of the adapter type
+        :return:
+        """
         for v_nic in set(vmUtil.get_vnic_no(session, vmname)):
             _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{v_nic}.virtualDev -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{v_nic}.virtualDev -i')
@@ -326,29 +511,78 @@ class VmTunning :
             st = re.search('"(.*?)"', r)
             if st:
                 adapter_type = st.group()
-                # print(f'adapeter in print : {adapter_type}')
                 return True if (adapter_type.strip('"')) == adapter else False
             else:
                 return False
 
-    # verification of the Tx thread allocation is enable
-    def verify_tx_thread_allocation(self, session, vmname, vnic):
-        for vnic in set(vmUtil.get_datastore(session, vmname)):
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}ctxPerDev -i')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
-            r = stdout.read().decode()
-            # print(f'verify tx :{r}')
-            _LOGGER.debug(f'{r}')
-            st = re.search('"(.*?)"', r)
-            if st:
-                status = st.group()
-                return True if int(status.strip('"')) == 1 else False
-            else:
-                # print('nope')
-                return False
+    def get_tx_thread_allocation(self, session, vmname, vnic):
+        """
+        Get virtual machine Tx thread detail of a specific vNIC
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :param vnic: vNIC number
+        :return:
+        """
+        command = f'cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
 
-    # verification of sysContext
+    def verify_tx_thread_allocation(self, session, vmname, vnic):
+        """
+        Checking the Tx-thread of the vNIC is exist and enabled
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :param vnic: vNIC number
+        :return:
+        """
+        # for vnic in set(vmUtil.get_vnic_no(session, vmname)):
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}ctxPerDev -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
+        r = stdout.read().decode()
+        # print(f'verify tx :{r}')
+        _LOGGER.debug(f'{r}')
+        st = re.search('"(.*?)"', r)
+        if st:
+            status = st.group()
+            return True if int(status.strip('"')) == 1 else False
+        else:
+            # print('nope')
+            return False
+    def get_sys_context(self, session, vmname):
+        """
+        Get virtual machine SysContext Detail
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual machine
+        :return:
+        """
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
     def verify_sys_context(self, session, vmname, vcpu):
+        """
+        Checking the SysContext value is same as the required value
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :param vcpu: Number of vCPU to be pinned
+        :return:
+        """
         _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
         r = stdout.read().decode()
@@ -358,8 +592,33 @@ class VmTunning :
             cpu = st.group()
             return True if int(cpu.strip('"')) == vcpu else False
 
-    # verification of NUMA affinity
+    def get_numa_affinity(self, session, vmnic):
+        """
+        Getting the virtual machine's NUMA affinity details
+        :param session: paramiko SSHClient object
+        :param vmnic: name of the vmNIC
+        :return:
+        """
+        command = f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
     def verify_numa_affinity(self, session, vmname, vmnic):
+        """
+        Checking the virtual machine NUMA is aligned to the NUMA of the physical NIC
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :param vmnic: Name of the vmNIC
+        :return:
+        """
         _LOGGER.debug(f'Executing command : vsish -e get /net/pNics/{vmnic}/properties | grep NUMA ')
         stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
         r = stdout.read().decode()
@@ -368,10 +627,6 @@ class VmTunning :
         if st:
             numa = st.group()
             old = vmUtil.get_numa_node(session, vmname)
-            # print(f'True value : {numa} \n exist value : {old}')
             return True if old == numa else False
         else:
             return False
-
-
-# _LOGGER.debug(f'Executing command : ')

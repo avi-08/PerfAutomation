@@ -1,3 +1,19 @@
+"""
+    There are a few configurations on the VM also that impact the overall networking throughput delivered.
+    1.Verify that exclusive affinity of all vCPU are enable.
+    2.Verify CPU reservation and share are reserved and made available to VM.
+    3.Verify Memory(RAM) reservation and share are reserved and made available to VM.
+    4.Verify Latency sensitivity is taking effect.
+    5.Verify the vNIC adapter type.
+    6.Verify the vNIC TX thread allocation is set.
+    7.Verify the SysContext is set to the no. of thread to be pinned.
+    8.Verify the vm NUMA is aligned to the NUMA of the physical NIC.
+
+    The above verification are done to ensure that it will not impact the overall networking throughput delivered.
+    Configuration are done if the verification fails.
+
+"""
+
 from src.core.vm import VmTuning, VmUtil
 from src.util import HostSession
 from src.core.host import Host
@@ -10,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 
 def vm_config(keep_defaults=False):
     hosts = settings.getValue('HOST_DETAILS')
-    print(hosts)
+    # print(hosts)
     vm_conf = json.load(open(r'env_conf\vm.json'))
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
@@ -21,6 +37,7 @@ def vm_config(keep_defaults=False):
         # print(client)
         # vms = vmUtil.get_vm_list(client)
         temp_vms = vm_conf['ESXI_65']['VM_NAMES']
+        # print(temp_vms)
         ver = conf_host.get_host_version(client)
         _NICS = host['NICS'].split(',')
         _LOGGER.info('Verifying optimization on virtual machine')
@@ -69,28 +86,27 @@ def vm_config(keep_defaults=False):
                 else:
                     _LOGGER.error(f'chaging Memory share : {status}')
 
-                _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])}')
-                status = vmTune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])
-                if status:
-                    _LOGGER.info(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
-                else:
-                    _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
-
                 for vnic in set(vmUtil.get_vnic_no(client, vm)):
-                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vmTune.verify_tx_thread_allocation(client, vm,vnic)}')
+                    _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])}')
+                    status = vmTune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])
+                    if status:
+                        _LOGGER.info(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
+                    else:
+                        _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
+
+                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vmTune.verify_tx_thread_allocation(client, vm, vnic)}')
                     status = vmTune.config_tx_thread_allocation(client, vm, vnic)
-                    print (f'tx tread {status}')
                     if status:
                         _LOGGER.info(f'changing the TX thread allocation for vnic{vnic}: {status}')
                     else:
                         _LOGGER.error(f'changing the TX thread allocation  for vnic{vnic}: {status}')
 
-                _LOGGER.info(f'Checking the SysContext : {vmTune.verify_sys_context(client,vm,param["VM_SYSCONTEXT"])}')
-                status = vmTune.config_sys_context(client,vm,param["VM_SYSCONTEXT"])
+                _LOGGER.info(f'Checking the SysContext : {vmTune.verify_sys_context(client, vm, vmTune.get_syscontext_value(client, vm, True))}')
+                status = vmTune.config_sys_context(client, vm, vmTune.get_syscontext_value(client, vm, True))
                 if status:
-                    _LOGGER.info(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
+                    _LOGGER.info(f'changing SysContext value to {vmTune.get_syscontext_value(client, vm, True)} : {status}')
                 else:
-                    _LOGGER.error(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
+                    _LOGGER.error(f'changing SysContext value to {vmTune.get_syscontext_value(client, vm, True)} : {status}')
 
                 for nic in _NICS:
                     _LOGGER.info(f'Checking the NUMA affinity value for {nic} : {vmTune.verify_numa_affinity(client,vm, nic)}')
@@ -145,13 +161,6 @@ def vm_config(keep_defaults=False):
                 else:
                     _LOGGER.error(f'chaging Memory share : {status}')
 
-                _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])}')
-                status = vmTune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])
-                if status:
-                    _LOGGER.info(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
-                else:
-                    _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
-
                 for vnic in set(vmUtil.get_vnic_no(client, vm)):
                     _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vmTune.verify_tx_thread_allocation(client, vm,vnic)}')
                     status = vmTune.config_tx_thread_allocation(client, vm, vnic)
@@ -159,6 +168,13 @@ def vm_config(keep_defaults=False):
                         _LOGGER.info(f'changing the TX thread allocation for vnic{vnic}: {status}')
                     else:
                         _LOGGER.error(f'changing the TX thread allocation  for vnic{vnic}:: {status}')
+
+                    _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, vmTune.get_syscontext_value(client, vm, False))}')
+                    status = vmTune.config_nic_adapter_type(client, vm, vmTune.get_syscontext_value(client, vm, False))
+                    if status:
+                        _LOGGER.info(f'changing the vNIC adapter type  to {vmTune.get_syscontext_value(client, vm, False)}:{status}')
+                    else:
+                        _LOGGER.error(f'changing the vNIC adapter type  to {vmTune.get_syscontext_value(client, vm, False)}:{status}')
 
                 _LOGGER.info(f'Checking the SysContext : {vmTune.verify_sys_context(client,vm,param["VM_SYSCONTEXT"])}')
                 status = vmTune.config_sys_context(client, vm, param["VM_SYSCONTEXT"])

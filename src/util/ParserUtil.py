@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+from prettytable import PrettyTable
 
 from src.env_conf import settings
 
@@ -65,3 +66,26 @@ class Parser:
         if args['list_operations']:
             self.get_usecases(os.path.dirname(os.path.dirname(__file__)))
             sys.exit(0)
+
+    def table_it(self, data):
+        x = PrettyTable()
+        x.field_names = ['key', 'value']
+        for i in data:
+            x.add_row([i, data[i]])
+        return x
+
+    def dict_to_table(self, data, header, row_major=True):
+        x = PrettyTable()
+        if row_major:
+            x.title = header
+            for key in data:
+                if type(data[key]) != list and type(data[key]) != tuple:
+                    x.add_column(key, [data[key]])
+                else:
+                    x.add_column(key, data[key])
+        else:
+            x.field_names = ['key', 'value']
+            for i in data:
+                x.add_row([i, data[i]])
+
+        return x
