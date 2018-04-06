@@ -8,7 +8,6 @@ from src.util import HostUtil
 from src.util import HostSession
 
 class Parser:
-    hosts = settings.getValue('HOST_DETAILS')
     def __init__(self):
         pass
 
