@@ -4,9 +4,11 @@ import os
 from prettytable import PrettyTable
 
 from src.env_conf import settings
-
+from src.util import HostUtil
+from src.util import HostSession
 
 class Parser:
+    hosts = settings.getValue('HOST_DETAILS')
     def __init__(self):
         pass
 
@@ -15,39 +17,33 @@ class Parser:
         Function to parse command line arguments
         :return: Dictionary containing command line args
         """
+        parser = argparse.ArgumentParser(prog=__file__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('-s', '--list-settings', action='store', type=str,
+                            help='list settings configuration and exit(type "all" to print all settings)',
+                            metavar=('SETTING_NAME',))
+        parser.add_argument('-v', '--verbose', action='store_true',
+                            help='Set verbosity level for console output as DEBUG; default level is INFO')
+        parser.add_argument('-e', '--list-env-details', action='store_true', help="List host details and exit")
+        parser.add_argument('--list-host-optimizations', action='store_true',
+                            help='List current host optimization parameters and exit')
+        parser.add_argument('--host-optimization-type', action='store', type=str,
+                            help='Specify host configuration type(default=standard), possible values="standard + splittx", "standard + rss", "standard + splittx + rss"',
+                            metavar=('CONFIG_TYPE',))
+        parser.add_argument('-l', '--list-testcases', action='store_true', help='get a list of testcases')
+        parser.add_argument('-g', '--get-testcase', action="store", type=str,
+                            help='get details of specified testcase', metavar=('TESTCASE',))
+        parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
+                            help='Run test for given test case'
+                                 '; a comma seperated list for running multiple tests')
+        parser.add_argument('--list-operations', action='store_true',
+                            help='get a list of all available operations and exit')
+        parser.add_argument('-p', '--perform', action='store', type=str,
+                            choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic',
+                                     'monitoring', 'reporting', 'cleanup'],
+                            help='Perform given operation; provide ', metavar=('OPERATION',))
+        args = vars(parser.parse_args())
 
-        def parse_cmd_args(self):
-            """
-            Function to parse command line arguments
-            :return: Dictionary containing command line args
-            """
-            parser = argparse.ArgumentParser(prog=__file__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-            parser.add_argument('-s', '--list-settings', action='store', type=str,
-                                help='list settings configuration and exit(type "all" to print all settings)',
-                                metavar=('SETTING_NAME',))
-            parser.add_argument('-v', '--verbose', action='store_true',
-                                help='Set verbosity level for console output as DEBUG; default level is INFO')
-            parser.add_argument('-e', '--list-env-details', action='store_true', help="List host details and exit")
-            parser.add_argument('--list-host-optimizations', action='store_true',
-                                help='List current host optimization parameters and exit')
-            parser.add_argument('--host-optimization-type', action='store', type=str,
-                                help='Specify host configuration type(default=standard), possible values="standard + splittx", "standard + rss", "standard + splittx + rss"',
-                                metavar=('CONFIG_TYPE',))
-            parser.add_argument('-l', '--list-testcases', action='store_true', help='get a list of testcases')
-            parser.add_argument('-g', '--get-testcase', action="store", type=str,
-                                help='get details of specified testcase', metavar=('TESTCASE',))
-            parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
-                                help='Run test for given test case'
-                                     '; a comma seperated list for running multiple tests')
-            parser.add_argument('--list-operations', action='store_true',
-                                help='get a list of all available operations and exit')
-            parser.add_argument('-p', '--perform', action='store', type=str,
-                                choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic',
-                                         'monitoring', 'reporting', 'cleanup'],
-                                help='Perform given operation; provide ', metavar=('OPERATION',))
-            args = vars(parser.parse_args())
-
-            return args
+        return args
 
     def get_usecases(self, dirpath):
         files = os.path.join(dirpath, 'usecases')
@@ -84,21 +80,23 @@ class Parser:
             sys.exit(0)
 
         if args['list_host_optimizations']:
-            print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings'))
+            print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings',False))
+            sys.exit(0)
+
+        if args['list_env_details']:
             sys.exit(0)
 
     def dict_to_table(self, data, header, row_major=True):
         x = PrettyTable()
+        x.title = header
         if row_major:
-            x.title = header
             for key in data:
                 if type(data[key]) != list and type(data[key]) != tuple:
                     x.add_column(key, [data[key]])
                 else:
                     x.add_column(key, data[key])
         else:
-            x.field_names = ['key', 'value']
+            x.field_names = [' Parameter ', ' Value ']
             for i in data:
                 x.add_row([i, data[i]])
-
         return x

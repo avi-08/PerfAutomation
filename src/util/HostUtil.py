@@ -3,31 +3,33 @@ from prettytable import PrettyTable
 import re
 
 class HostUtil:
+
     def __init__(self):
         pass
 
     def get_nics(self, client):
-        print('details of the nics\n')
         stdin, stdout, stderr = client.exec_command('esxcfg-nics --list')
         a = stdout.read().decode()
-        print(a)
         a = re.sub(' +', ' ', a).rstrip()
         a = a.split('\n')
         b = a[0].rstrip().split(' ')
         x = PrettyTable()
         x.title = 'NICs details'
         del b[8]
-        # print(b)
         x.field_names = b
+        q = dict()
+        q[b[0]], q[b[1]], q[b[2]] = [], [], []
+        q[b[3]], q[b[4]], q[b[5]] = [], [], []
+        q[b[6]], q[b[7]], q[b[8]] = [], [], []
         for nic in a[1:]:
             a1 = nic.split(' ')
             b1 = a1[8:]
             b1 = ' '.join(b1)
             del a1[8:]
             a1.append(b1)
-            # print (a1)
-            x.add_row(a1)
-        return x
+            for i in range(0, len(a1)):
+                q[b[i]].append(a1[i])
+        return q
 
     def get_mpath(self, client):
         print('mpath details\n')
@@ -218,16 +220,3 @@ class HostUtil:
             b[key] = lt
 
         return b
-
-    def get_network(self, client):
-        stdin, stdout, stderr = client.exec_command('esxcli  network ip dns server list')
-        a = stdout.read().decode()
-        a = a.rstrip().lstrip().split(':')
-        x = PrettyTable()
-        x.add_column(a[0], (a[1],))
-        stdin, stdout, stderr = client.exec_command('esxcli network ip get')
-        a = stdout.read().decode()
-        a = a.rstrip().lstrip().split(':')
-        x.add_column(a[0], (a[1],))
-        print(self.get_host_ip(client))
-        return x
