@@ -4,8 +4,7 @@ import os
 from prettytable import PrettyTable
 
 from src.env_conf import settings
-from src.util import HostUtil
-from src.util import HostSession
+
 
 class Parser:
     def __init__(self):
@@ -79,23 +78,21 @@ class Parser:
             sys.exit(0)
 
         if args['list_host_optimizations']:
-            print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings',False))
-            sys.exit(0)
-
-        if args['list_env_details']:
+            print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings'))
             sys.exit(0)
 
     def dict_to_table(self, data, header, row_major=True):
         x = PrettyTable()
-        x.title = header
         if row_major:
+            x.title = header
             for key in data:
                 if type(data[key]) != list and type(data[key]) != tuple:
                     x.add_column(key, [data[key]])
                 else:
                     x.add_column(key, data[key])
         else:
-            x.field_names = [' Parameter ', ' Value ']
+            x.field_names = ['key', 'value']
             for i in data:
                 x.add_row([i, data[i]])
+
         return x

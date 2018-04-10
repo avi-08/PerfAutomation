@@ -88,8 +88,6 @@ class Settings:
                 data = json.load(f)
                 if data.items():
                     for key in data:
-                        if key.startswith("__"):
-                            print(key)
                         setattr(self, key, data[key])
         except FileNotFoundError as ferr:
             print(f'File Not found error: {ferr.filename} {ferr.args}')

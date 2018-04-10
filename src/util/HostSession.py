@@ -3,8 +3,7 @@ import logging
 
 import paramiko
 
-
-_LOGGER = logging.getLogger(__name__)
+from src.util.LogUtil import LogUtil
 
 
 class HostSession:
@@ -16,6 +15,7 @@ class HostSession:
         """
 
         """
+        self.logger = LogUtil()
         pass
 
     def connect(self, host, user, password, ssl=False, port=22):
@@ -33,24 +33,24 @@ class HostSession:
             client = paramiko.SSHClient()
             if ssl:
                 key = paramiko.RSAKey(data=base64.b64decode(b'AAAA'))
-                _LOGGER.info("Connecting to host using ssl......")
+                self.logger.info("Connecting to host using ssl......")
                 client.get_host_keys().add(host, 'ssh-rsa', key)
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(host, username=user, password=password, port=port)
-                _LOGGER.info("Connected to", host)
+                self.logger.info(f"Connected to {host}")
                 return client
             else:
-                _LOGGER.info("Connecting to host......")
+                self.logger.info("Connecting to host......")
                 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 client.connect(host, username=user, password=password, port=port)
-                _LOGGER.info(f"Connected to {host}")
+                self.logger.info(f"Connected to {host}")
                 return client
         except paramiko.AuthenticationException as authex:
-            _LOGGER.exception(f"Authentication Exception {authex.args}")
+            self.logger.exception(f"Authentication Exception {authex.args}")
         except paramiko.SSHException as sshex:
-            _LOGGER.exception(f"SSH Exception {sshex.agrs}")
+            self.logger.exception(f"SSH Exception {sshex.agrs}")
         except Exception as ex:
-            _LOGGER.exception(f"Connection Error Exception {ex.args}")
+            self.logger.exception(f"Connection Error Exception {ex.args}")
 
     def disconnect(self, client):
         """
@@ -58,8 +58,8 @@ class HostSession:
         :param client: paramiko.SSHClient object to disconnect session
         :return: None
         """
-        _LOGGER.info(f"Disconnecting from {client.get_transport().getpeername()[0]}......")
+        self.logger.info(f"Disconnecting from {client.get_transport().getpeername()[0]}......")
         client.close()
-        _LOGGER.info("Disconnected.")
+        self.logger.info("Disconnected.")
 
 
