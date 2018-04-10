@@ -39,7 +39,7 @@ class VmUtility:
         if st:
             status = st.group()
             status = status.strip('"')
-            print(f'numa node in vmx : {status}')
+            # print(f'numa node in vmx : {status}')
             return status
         else:
             return False
