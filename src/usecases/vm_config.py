@@ -18,6 +18,7 @@ from src.core.vm import VmTuning, VmUtil
 from src.util import HostSession
 from src.core.host import Host
 from src.env_conf import settings
+from  src.util import ParserUtil
 import json
 import logging
 
@@ -31,6 +32,7 @@ def vm_config(keep_defaults=False):
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
     conf_host = Host.HostConfig()
+    parser = ParserUtil.Parser()
     for host in hosts:
         # print(host['HOST'], host['USER'], host['PASSWORD'])
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
@@ -46,6 +48,7 @@ def vm_config(keep_defaults=False):
             """
                 ESXI VERSION 6.5
             """
+            print(parser.dict_to_table(get_env_data(client, vm), 'VM Status', False))
             if ver.find('6.5') > -1:
                 param = vm_conf['ESXI_65']
                 _LOGGER.info(f'HOST VERSION : ESXI 6.5 ')
@@ -87,8 +90,8 @@ def vm_config(keep_defaults=False):
                     _LOGGER.error(f'chaging Memory share : {status}')
 
                 for vnic in set(vmUtil.get_vnic_no(client, vm)):
-                    _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])}')
-                    status = vmTune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"])
+                    _LOGGER.info(f'checking the vNIC adapter type : {vmTune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"],vnic)}')
+                    status = vmTune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"],vnic)
                     if status:
                         _LOGGER.info(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
                     else:
@@ -117,6 +120,7 @@ def vm_config(keep_defaults=False):
                         _LOGGER.error(f'changing NUMA value for {nic}:{status}')
                 vmTune.clean_file(client, vm)
                 vmUtil.power_on_vm(client, vm)
+
             else:
                 """
                     ESXI VERSION 6.0 U2
@@ -195,7 +199,39 @@ def vm_config(keep_defaults=False):
                 """
                 vmTune.clean_file(client, vm)
                 vmUtil.power_on_vm(client, vm)
+            print(parser.dict_to_table(get_env_data(client, vm), 'VM Status', False))
         HostSession.HostSession().disconnect(client)
+
+def get_env_data(client, vm):
+    vmTune = VmTuning.VmTunning()
+    vmUtil = VmUtil.VmUtility()
+    parser = ParserUtil.Parser()
+    b = {}
+    b['Adapter Type'] = list()
+    b['TX thread'] = list()
+    a = vmTune.get_latency_sensitivity(client, vm)
+    b['latency Sensitivity'] = a['out']
+    a =vmTune.get_cpu_reservation(client, vm)
+    b['CPU Reservation '] = a['out']
+    a = vmTune.get_cpu_share(client, vm)
+    b['CPU Share'] = a['out']
+    a = vmTune.get_mem_share(client, vm)
+    b['Memory Share'] = a['out']
+    a = vmTune.get_mem_reservation(client, vm)
+    b['Memory Reservation'] = a['out']
+    for vnic in set(vmUtil.get_vnic_no(client, vm)):
+        a = vmTune.get_nic_adapter_type(client, vm,vnic)
+        b['Adapter Type'].append(a['out'].strip("\n").strip())
+        a = vmTune.get_tx_thread_allocation(client, vm, vnic)
+        b['TX thread'].append(a['out'].strip("\n").strip())
+
+    a = vmTune.get_sys_context(client,vm)
+    b['SysContext'] = a['out']
+    a = vmTune.get_numa_affinity(client,'vmnic6')
+    b['NUMA affinity'] = a['out']
+    # print(parser.dict_to_table(b,'VM Status',False))
+    return b
+
 
 """
 def vm_config():
@@ -223,4 +259,3 @@ def vm_config():
         print('verify_sys_context : {}'.format(VmTuning.verify_sys_context(client, vmname, 3)))
         client.close()
 """
-# vm_config()
