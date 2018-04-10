@@ -53,7 +53,7 @@ class VmTunning :
             # return False if stderr.read() else True
             return True
 
-    def config_nic_adapter_type(self, session, vmname, adapter):
+    def config_nic_adapter_type(self, session, vmname, adapter,vnic):
         """
         configure the adapter type of the Virtual machine
         :param session: paramiko SSHClient object
@@ -61,22 +61,22 @@ class VmTunning :
         :param adapter: Type of adapter to be configured
         :return:
         """
-        if self.verify_nic_adapter_type(session, vmname, adapter):
+        if self.verify_nic_adapter_type(session, vmname, adapter, vnic):
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.virtualDev -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
                 exist = st.group()
                 exist = exist.strip('"')
-                data = data.replace(f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{exist}"',f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"')
+                data = data.replace(f'ethernet{vnic}.virtualDev = "{exist}"',f'ethernet{vnic}.virtualDev = "{adapter}"')
                 data = data.replace('"', '\\"')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
-                data += f'ethernet{vmUtil.get_vnic_no(session,vmname)}.virtualDev = "{adapter}"'
+                data += f'ethernet{vnic}.virtualDev = "{adapter}"'
                 data = data.replace('"', '\\"')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
@@ -476,14 +476,14 @@ class VmTunning :
             status = st.group()
             return True if status.strip('"') == vmUtil.get_vm_memory(session, vmname) else False
 
-    def get_nic_adapter_type(self, session,vmname):
+    def get_nic_adapter_type(self, session,vmname,vnic):
         """
         Get virtual machine NIC adapeter type
         :param session:
         :param vmname:
         :return:
         """
-        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{v_nic}.virtualDev -i'
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{vnic}.virtualDev -i'
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -495,7 +495,7 @@ class VmTunning :
             mod['out'] = ''
         return mod
 
-    def verify_nic_adapter_type(self, session, vmname, adapter):
+    def verify_nic_adapter_type(self, session, vmname, adapter,vnic):
         """
         Checking the virtual machine adapter type is same as the required adapter type
         :param session: paramiko SSHClient object
@@ -503,17 +503,17 @@ class VmTunning :
         :param adapter: Name of the adapter type
         :return:
         """
-        for v_nic in set(vmUtil.get_vnic_no(session, vmname)):
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{v_nic}.virtualDev -i')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{v_nic}.virtualDev -i')
-            r = stdout.read().decode()
-            _LOGGER.info(f'networtk adapter : {r}')
-            st = re.search('"(.*?)"', r)
-            if st:
-                adapter_type = st.group()
-                return True if (adapter_type.strip('"')) == adapter else False
-            else:
-                return False
+        #for v_nic in set(vmUtil.get_vnic_no(session, vmname)):
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.virtualDev -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{vnic}.virtualDev -i')
+        r = stdout.read().decode()
+        _LOGGER.info(f'networtk adapter : {r}')
+        st = re.search('"(.*?)"', r)
+        if st:
+            adapter_type = st.group()
+            return True if (adapter_type.strip('"')) == adapter else False
+        else:
+            return False
 
     def get_tx_thread_allocation(self, session, vmname, vnic):
         """
@@ -523,7 +523,7 @@ class VmTunning :
         :param vnic: vNIC number
         :return:
         """
-        command = f'cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i'
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i'
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -544,8 +544,8 @@ class VmTunning :
         :return:
         """
         # for vnic in set(vmUtil.get_vnic_no(session, vmname)):
-        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}ctxPerDev -i')
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vnic}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
         r = stdout.read().decode()
         # print(f'verify tx :{r}')
         _LOGGER.debug(f'{r}')
