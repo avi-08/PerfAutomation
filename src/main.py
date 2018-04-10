@@ -20,9 +20,9 @@ def main():
     Main Script that controls the framework execution; This is the starting point of the framework.
     """
     args = ParserUtil.Parser().parse_cmd_args()
-    logger = logging.getLogger()
+    logger1 = logging.getLogger()
 
-    print(host_config.__doc__)
+    #print(host_config.__doc__)
     # configure settings
     print("Loading configuration file values in current session...")
     settings.load_from_dir(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'env_conf'))
@@ -30,23 +30,25 @@ def main():
 
     # load command line parameters first in case there are settings files
     # to be used
-    settings.load_from_dict(args)
+    #settings.load_from_dict(args)
 
     # reload command line parameters since these should take higher priority
     # than both a settings file and environment variables
-    settings.load_from_dict(args)
+    #settings.load_from_dict(args)
 
     # if required, handle list-* operations
     print("Scanning for command line arguments...")
     ParserUtil.Parser().process_cmd_switches(args)
     print("Done.")
 
-    if(args['verbose']):
-        LogUtil.LogUtil().configure_logging(logger, 'debug')
+    if args['verbose']:
+        LogUtil.LogUtil().configure_logging(logger1, 'debug')
     else:
-        LogUtil.LogUtil().configure_logging(logger, settings.getValue('VERBOSITY'))
+        LogUtil.LogUtil().configure_logging(logger1, settings.getValue('VERBOSITY'))
 
+    logger = LogUtil.LogUtil()
     # Check if there are any specific operations to perform, otherwise continue the normal framework execution.
+
     if args['perform']:
         # Apply host optimizations
         if args['perform'] == 'host_config':

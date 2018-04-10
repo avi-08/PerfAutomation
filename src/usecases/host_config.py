@@ -13,13 +13,12 @@
     for the corresponding usecase.
 
 """
-import logging
 
 from src.core.host import Host
-from src.util import HostSession
+from src.util import HostSession, LogUtil
 from src.env_conf import settings
 
-logger = logging.getLogger(__name__)
+logger = LogUtil.LogUtil()
 
 
 def host_config(keep_defaults=False):
