@@ -1,0 +1,15 @@
+{
+  "__esxi_commands_comment__": "Commands to be executed as part of tech-support collection. Fill each command as an entry in the array.",
+  "ESXI_COMMANDS": [
+    "esxcli system time get",
+    "esxcfg-vswitch -l",
+    "ls -lrt",
+    "esxcli network ip netstack list"
+  ],
+
+  "__vm_commands_comment__": "Commands to be executed as part of tech-support collection. Fill each command as an entry in the array.",
+  "VM_COMMANDS": [
+    "ls -lrt",
+    "ps aux"
+  ]
+}

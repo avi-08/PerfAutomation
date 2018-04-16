@@ -4,6 +4,7 @@ import logging
 import paramiko
 
 from src.util.LogUtil import LogUtil
+from src.util.CommandOutput import CommandOutput
 
 
 class HostSession:
@@ -62,4 +63,8 @@ class HostSession:
         client.close()
         self.logger.info("Disconnected.")
 
-
+    def execute_command(self, client, command):
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        error = stderr.read().decode()
+        return CommandOutput(success=True, output=output, error=error)

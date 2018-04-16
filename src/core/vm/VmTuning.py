@@ -7,12 +7,12 @@
 from __future__ import print_function
 from src.core.vm import VmUtil
 import re
-import logging
+from src.util import LogUtil
 
 __author__ = "Somanath"
 
 vmUtil = VmUtil.VmUtility()
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = LogUtil.LogUtil()
 
 class VmTunning :
     

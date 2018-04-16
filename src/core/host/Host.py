@@ -324,7 +324,7 @@ class HostConfig:
         command = f'vsish -ep get /net/pNics/{vmnic}/sched/txMode'
         self.logger.info(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
-        output = stdout.read().decode()
+        output = stdout.read().decode().strip('\n')
         self.logger.info(f'Fetching Output: {output}')
         return {"txMode": output}
 

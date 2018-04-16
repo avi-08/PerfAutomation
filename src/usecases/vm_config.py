@@ -18,11 +18,11 @@ from src.core.vm import VmTuning, VmUtil
 from src.util import HostSession
 from src.core.host import Host
 from src.env_conf import settings
-from  src.util import ParserUtil
+from  src.util import ParserUtil, LogUtil
 import json
 import logging
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = LogUtil.LogUtil()
 
 
 def vm_config(keep_defaults=False):
@@ -48,7 +48,7 @@ def vm_config(keep_defaults=False):
             """
                 ESXI VERSION 6.5
             """
-            print(parser.dict_to_table(get_env_data(client, vm), 'VM Status', False))
+            print(parser.dict_to_table(get_env_data(client, vm), 'Current VM Status', False))
             if ver.find('6.5') > -1:
                 param = vm_conf['ESXI_65']
                 _LOGGER.info(f'HOST VERSION : ESXI 6.5 ')
@@ -199,7 +199,7 @@ def vm_config(keep_defaults=False):
                 """
                 vmTune.clean_file(client, vm)
                 vmUtil.power_on_vm(client, vm)
-            print(parser.dict_to_table(get_env_data(client, vm), 'VM Status', False))
+            print(parser.dict_to_table(get_env_data(client, vm), 'Post configuration VM Status', False))
         HostSession.HostSession().disconnect(client)
 
 def get_env_data(client, vm):

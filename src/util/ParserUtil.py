@@ -1,13 +1,15 @@
 import argparse
 import sys
 import os
+import re
 from prettytable import PrettyTable
 
 from src.env_conf import settings
 
 
 class Parser:
-    def __init__(self):
+    def __init__(self, prog=__file__):
+        self.prog = prog
         pass
 
     def parse_cmd_args(self):
@@ -15,7 +17,7 @@ class Parser:
         Function to parse command line arguments
         :return: Dictionary containing command line args
         """
-        parser = argparse.ArgumentParser(prog=__file__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser = argparse.ArgumentParser(prog=self.prog, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('-s', '--list-settings', action='store', type=str,
                             help='list settings configuration and exit(type "all" to print all settings)',
                             metavar=('SETTING_NAME',))
@@ -39,16 +41,20 @@ class Parser:
                             choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic',
                                      'monitoring', 'reporting', 'cleanup'],
                             help='Perform given operation; provide ', metavar=('OPERATION',))
+        parser.add_argument('--collect-tech-support', action='store', type=str, nargs='*'
+                            , default='', help='Collect tech support dumps. COMMAND(optional): Provide additional commands other than those present in command.json.')
         args = vars(parser.parse_args())
-
+        print(args)
         return args
 
     def get_usecases(self, dirpath):
         files = os.path.join(dirpath, 'usecases')
+        print('-'*80, 'Operation\t\t\t\tDescription', '-'*80, sep='\n')
         for file in os.listdir(files):
-            print(file)
-            if os.path.isfile(file) and file.startswith('__') < 0:
-                print(f'{file}\t\t\t{sys.modules(file).__doc__}')
+            filepath = os.path.join(files, file)
+            if os.path.isfile(filepath) and not (file.startswith('__') or file.startswith('tech_support')):
+                print(f'{re.sub(".py", "", file)}')
+        print('-'*80)
         pass
 
     def process_cmd_switches(self, args):
@@ -83,8 +89,8 @@ class Parser:
 
     def dict_to_table(self, data, header, row_major=True):
         x = PrettyTable()
+        x.title = header
         if row_major:
-            x.title = header
             for key in data:
                 if type(data[key]) != list and type(data[key]) != tuple:
                     x.add_column(key, [data[key]])

@@ -15,9 +15,8 @@
 """
 
 from src.core.host import Host
-from src.util import HostSession, LogUtil
+from src.util import HostSession, LogUtil,ParserUtil
 from src.env_conf import settings
-
 logger = LogUtil.LogUtil()
 
 
@@ -147,6 +146,7 @@ def host_config(keep_defaults=False):
 
 
 def get_host_config():
+    parse = ParserUtil.Parser()
     hosts = settings.getValue('HOST_DETAILS')
     # Create object of HostConfig() to access functions
     config_host = Host.HostConfig()
@@ -155,17 +155,33 @@ def get_host_config():
         _NICS = host['NICS'].split(',')
         logger.info(f'Getting ESXi version details')
         ver = config_host.get_host_version(client)
-        logger.info(f'{ver}')
-        logger.info('Start applying optimizations for the specific Esxi version')
+        b = dict()
+        b['Host Version'] = ''
+        b['NICS'] = _NICS
+        b['Driver module'] = list()
+        b['RX Ring Size'] = list()
+        b['TX Ring Size'] = list()
+        b['txMode'] = list()
         if ver.find('6.5') > -1:
+            b['Host Version'] = ver
             config = Host.HostConfig()
             for nic in _NICS:
-                config.get_nic_ring_size(client, nic)
+                a =config.get_nic_ring_size(client, nic)
+                # print(a)
+                b['RX Ring Size'].append(a['RX'])
+                b['TX Ring Size'].append(a['TX'])
             for nic in _NICS:
-                config.get_split_tx_status(client, nic)
-            config.get_rss(client, 'ixgben')
+                a = config.get_split_tx_status(client, nic)
+                b['txMode'].append(a['txMode'])
+            a=config.get_rss(client, 'ixgben')
+            b['RSS'] = a['options']
             for nic in _NICS:
-                config.get_nic_driver(client, nic)
-
+                a = config.get_nic_driver(client, nic)
+                b['Driver module'].append(a['module'])
+            a =config.get_queue_pairing_status(client)
+            b['Queue paring status '] = a['queue_pairing_enabled']
+            a = config.get_sw_tx_queue_size(client)
+            b['Software TX queue size'] = a['sw_tx_queue_size']
+            print(parse.dict_to_table(b,'Host Optimization Status',False))
         HostSession.HostSession().disconnect(client)
     pass

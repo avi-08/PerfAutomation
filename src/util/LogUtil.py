@@ -34,7 +34,7 @@ class LogUtil:
         try:
             threshold = settings.getValue('COMPRESSION_THRESHOLD')
 
-            filename = settings.getValue('LOG_FILE_NAME') + re.sub(":", "", self.get_ntp_time()) + '.log'
+            filename = settings.getValue('LOG_FILE_PREFIX') + re.sub(":", "", self.get_ntp_time()) + '.log'
             log_file = os.path.join(settings.getValue('LOG_DIR'), filename)
 
             # Make paramiko log to different file as we don't want the paramiko logs in framework log files

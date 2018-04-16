@@ -4,7 +4,9 @@
 from __future__ import print_function
 import logging
 import re
-_LOGGER = logging.getLogger(__name__)
+from src.util import LogUtil
+
+_LOGGER = LogUtil.LogUtil()
 
 class VmUtility:
 

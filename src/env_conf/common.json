@@ -2,7 +2,7 @@
 
   "LOG_DIR": "C:\\Users\\savi\\Desktop\\PAFLogs",
 
-  "LOG_FILE_NAME": "PAFlog_",
+  "LOG_FILE_PREFIX": "PAFlog_",
 
   "PARAMIKO_LOG_FILE": "paramiko_logs.log",
 
@@ -16,5 +16,8 @@
   "COMPRESSED_LOG_DIR": "C:\\Users\\savi\\Desktop\\ZipLogs",
 
   "COMPRESSION_THRESHOLD": 100,
-  "__compression_ratio_comment__": "Minimum size of files(combined) to be compressed(in KB)"
+  "__compression_ratio_comment__": "Minimum size of files(combined) to be compressed(in KB)",
+
+  "TECH_SUPPORT_DIR": "C:\\Users\\savi\\Desktop\\PAF_tech_logs"
+
 }
