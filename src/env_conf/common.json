@@ -1,6 +1,6 @@
 {
 
-  "LOG_DIR": "C:\\Users\\savi\\Desktop\\PAFLogs",
+  "LOG_DIR": "C:\\Users\\somanathr\\Desktop\\PAFLogs",
 
   "LOG_FILE_NAME": "PAFlog_",
 
@@ -13,7 +13,7 @@
   "LOG_TIME_SOURCE": "HOST",
   "__log_time_source_comment__": "This can take value of either 'HOST' or 'NTP'. Specifies source for getting time for logging.",
 
-  "COMPRESSED_LOG_DIR": "C:\\Users\\savi\\Desktop\\ZipLogs",
+  "COMPRESSED_LOG_DIR": "C:\\Users\\somanathr\\Desktop\\ZipLogs",
 
   "COMPRESSION_THRESHOLD": 100,
   "__compression_ratio_comment__": "Minimum size of files(combined) to be compressed(in KB)"
