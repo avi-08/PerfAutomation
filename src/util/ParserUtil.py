@@ -24,7 +24,7 @@ class Parser:
         parser.add_argument('-v', '--verbose', action='store_true',
                             help='Set verbosity level for console output as DEBUG; default level is INFO')
         parser.add_argument('-e', '--list-env-details', action='store', help="List host details and exit", type= str,
-                            choices=['', 'compact'])
+                            choices=['all', 'compact'])
         parser.add_argument('--list-host-optimizations', action='store_true',
                             help='List current host optimization parameters and exit')
         parser.add_argument('--host-optimization-type', action='store', type=str,
@@ -84,7 +84,7 @@ class Parser:
             print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings'))
             sys.exit(0)
 
-        if args['list_env_details'] == '':
+        if args['list_env_details'] == 'all':
             hosts = settings.getValue('HOST_DETAILS')
             print('Environment Details')
             for host in hosts:

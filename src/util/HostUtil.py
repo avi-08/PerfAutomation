@@ -490,23 +490,53 @@ class HostUtil:
         b['No of NIC'] = len(a['Description'])
         return b
 
+    def get_current_powerstatus(self, client):
+        """
+        Getting the Current power Policy
+        :return: <dict> current Power policy
+        """
+        stdin, stdout, stderr = client.exec_command('vsish  -ep get power/currentPolicy')
+        a = eval(stdout.read().decode())
+        return a
+
+    def get_hoststats(self, client):
+        """
+        getting the host status
+        :param client: paramiko SSHClient object
+        :return: <dict> get the host status
+        """
+        stdin, stdout, stderr = client.exec_command('vsish  -ep get /power/hostStats')
+        a = eval(stdout.read().decode())
+        return a
+
+    def get_pcpu_power_mgmt_states(self,client):
+        stdin, stdout, stderr = client.exec_command('vsish  -ep get /power/pcpu/0/state')
+        a = eval(stdout.read().decode())
+        return a
+
     def list_env_details(self, client):
         parse = ParserUtil.Parser()
+        f = open("env_details.txt", "a+")
         b = {}
         a = parse.dict_to_table(self.get_platform_details(client), '', False)
         b['platform Details'] = a
-        print(parse.dict_to_table(b, 'Hardware Details', False))
+        c = parse.dict_to_table(b, 'Hardware Details', False)
+        f.write(str(c))
 
         b = {}
         a = self.get_cpu_info(client)
         a = parse.dict_to_table(a, '', False)
         b['CPU'] = a
-        print(parse.dict_to_table(b, 'CPU Details', False))
+        c = parse.dict_to_table(b, 'CPU Details', False)
+        print(c)
+        f.write(str(c))
 
         b = {}
         a = parse.dict_to_table(self.get_hw_memory(client), '', False)
         b['Hardware Memory'] = a
-        print(parse.dict_to_table(b, 'Hardware Memory Details', False))
+        c  = parse.dict_to_table(b, 'Hardware Memory Details', False)
+        print(c)
+        f.write(str(c))
 
         b = {}
         # a = parse.dict_to_table(self.get_physical_adapter(client),'')
@@ -517,7 +547,9 @@ class HostUtil:
         b['File System'] = a
         # a = parse.dict_to_table(self.get_logical_device_details(client),'')
         # b['Logical device'] = a
-        print(parse.dict_to_table(b, 'Storage Details', False))
+        c = parse.dict_to_table(b, 'Storage Details', False)
+        print(c)
+        f.write(str(c))
 
         b = {}
         a = parse.dict_to_table(self.get_nics(client), '')
@@ -534,8 +566,22 @@ class HostUtil:
         b['DVport ID'] = a
         a = parse.dict_to_table(self.get_vm_details(client), '')
         b['Virtual Machine'] = a
-        print(parse.dict_to_table(b, 'Network Details', False))
+        c = parse.dict_to_table(b, 'Network Details', False)
+        print(c)
+        f.write(str(c))
 
+        b = {}
+        a = parse.dict_to_table(self.get_current_powerstatus(client), '', False)
+        b['Current Power Policy'] = a
+        a = parse.dict_to_table(self.get_hoststats(client), '', False)
+        b['Host status'] = a
+        a = parse.dict_to_table(self.get_pcpu_power_mgmt_states(client), '', False)
+        b['PCPU power management states'] = a
+        c = parse.dict_to_table(b, 'System State', False)
+        print(c)
+        f.write(str(c))
+        f.close()
+        
     def list_env_detail_compact(self, client):
         parse = ParserUtil.Parser()
         a = self.hardware_detail_compact(client)

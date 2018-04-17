@@ -1,7 +1,7 @@
 """
-
-
-
+This script contains all the functions to validate and apply the virtual machine optimizations.
+This script tunes Virtual Machine for following properties according to best practices for the particular version of host.
+1.
 
 """
 from __future__ import print_function
@@ -202,7 +202,7 @@ class VmTunning :
         Configuring the virtual machine's memory share to it's maximum capacity
         :param session: paramiko SSHClient object
         :param vmname: Name of the Virtual Machine
-        :return:
+        :return:<boolean> Return True if the configuration is sucessfully made.
         """
         if self.verify_mem_share(session, vmname):
             return True
@@ -630,3 +630,69 @@ class VmTunning :
             return True if old == numa else False
         else:
             return False
+
+    def config_vm_hw_version(self, session, vmname, version):
+        """
+        configuring virtual machine hardware version
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the virtual machine
+        :param version: hardware version to be applied
+        :return:
+        """
+        if self.verify_vm_hw_version(session, vmname, version):
+            return True
+        else:
+            data = vmUtil.read_vmx(session, vmname)
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                old = st.group()
+                old = old.strip('"')
+                data = data.replace(f'virtualHW.version = "{old}"', f'virtualHW.version = "{version}"')
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
+                return False if stderr.read() else True
+            else:
+                data += f'virtualHW.version = "{version}"'
+                data = data.replace('"', '\\"')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
+                return False if stderr.read() else True
+
+    def get_vm_hw_version(self, session, vmname):
+        """
+        Getting the hardware version of the Virtual machine
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :return:<dict> the command and the version
+        """
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version'
+        stdin, stdout, stderr = session.exec_command(command)
+        r = stdout.read().decode()
+        mod = {}
+        if r:
+            mod['command'] = command
+            mod['out'] = r
+        else:
+            mod['command'] = command
+            mod['out'] = ''
+        return mod
+
+    def verify_vm_hw_version(self, session, vmname, version):
+        """
+        Checking the hardware Version of the virtual Machine
+        :param session: paramiko SSHClient object
+        :param vmname: Name of the Virtual Machine
+        :param version: proper hardware version
+        :return:<boolean> returns true if the version is match
+        """
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version')
+        r = stdin.read().decode()
+        _LOGGER.debug(f'Hardware Version of the Virtual Machine : {r}')
+        st = re.search('"(.*?)"', r)
+        if st:
+            st = st.group()
+            return True if st.strip().strip('"') == version else False
+        else:
+            return False
+
