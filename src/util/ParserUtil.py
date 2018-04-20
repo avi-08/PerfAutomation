@@ -5,6 +5,8 @@ import re
 from prettytable import PrettyTable
 
 from src.env_conf import settings
+from src.util import HostUtil
+from src.util import HostSession
 
 
 class Parser:
@@ -23,7 +25,8 @@ class Parser:
                             metavar=('SETTING_NAME',))
         parser.add_argument('-v', '--verbose', action='store_true',
                             help='Set verbosity level for console output as DEBUG; default level is INFO')
-        parser.add_argument('-e', '--list-env-details', action='store_true', help="List host details and exit")
+        parser.add_argument('-e', '--list-env-details', action='store', help="List host details and exit", type=str,
+                            choices=['all', 'compact'])
         parser.add_argument('--list-host-optimizations', action='store_true',
                             help='List current host optimization parameters and exit')
         parser.add_argument('--host-optimization-type', action='store', type=str,
@@ -85,10 +88,26 @@ class Parser:
         if args['list_host_optimizations']:
             print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings'))
             sys.exit(0)
+        if args['list_env_details'] == 'all':
+            hosts = settings.getValue('HOST_DETAILS')
+            print('Environment Details')
+            for host in hosts:
+                client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
+                HostUtil.HostUtil().list_env_details(client)
+            sys.exit(0)
+
+        if args['list_env_details'] == 'compact':
+            hosts = settings.getValue('HOST_DETAILS')
+            print('Environment Details compact')
+            for host in hosts:
+                client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
+                HostUtil.HostUtil().list_env_detail_compact(client)
+            sys.exit(0)
 
     def dict_to_table(self, data, header, row_major=True):
         x = PrettyTable()
-        x.title = header
+        if header:
+            x.title = header
         if row_major:
             for key in data:
                 if type(data[key]) != list and type(data[key]) != tuple:
@@ -96,8 +115,8 @@ class Parser:
                 else:
                     x.add_column(key, data[key])
         else:
-            x.field_names = ['key', 'value']
+            x.field_names = ['Parameter ', 'value']
             for i in data:
                 x.add_row([i, data[i]])
-
+        x.align = 'l'
         return x
