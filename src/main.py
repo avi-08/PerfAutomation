@@ -40,7 +40,8 @@ def main():
     print("Scanning for command line arguments...")
     ParserUtil.Parser().process_cmd_switches(args)
     print("Done.")
-
+    if args['collect_tech_support']:
+        print(args['collect_tech_support'])
     if args['verbose']:
         LogUtil.LogUtil().configure_logging(logger1, 'debug')
     else:
@@ -48,7 +49,8 @@ def main():
 
     logger = LogUtil.LogUtil()
     # Check if there are any specific operations to perform, otherwise continue the normal framework execution.
-
+    if args['collect_tech_support']:
+        tech_support.TechSupport().generate_tech_support('host', args['collect_tech_support'])
     """
     if args['perform']:
         # Apply host optimizations
