@@ -3,6 +3,7 @@ import sys
 import os
 import re
 from prettytable import PrettyTable
+from sys import platform
 
 from src.env_conf import settings
 from src.util import HostUtil
@@ -46,6 +47,7 @@ class Parser:
                             help='Perform given operation; provide ', metavar=('OPERATION',))
         parser.add_argument('--collect-tech-support', action='store', type=str, nargs='*'
                             , default=None, help='Collect tech support dumps. COMMAND(optional): Provide additional commands seperated by "," other than those present in command.json.')
+        parser.add_argument('--dependency-install', action='store_true', help='install all the dependency required.')
         args = vars(parser.parse_args())
         return args
 
@@ -69,7 +71,10 @@ class Parser:
             sys.exit(0)
         if args['list_testcases']:
             if len(settings.getValue('TESTCASES')) > 0:
-                print(settings.getValue('TESTCASES'))
+                # print(settings.getValue('TESTCASES'))
+                for a in settings.getValue('TESTCASES'):
+                    print(self.dict_to_table(a, a['NAME'], False))
+                    print('\n')
             else:
                 print("No defined testcases found")
             sys.exit(0)
@@ -86,7 +91,7 @@ class Parser:
             sys.exit(0)
 
         if args['list_host_optimizations']:
-            print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings'))
+            print(self.dict_to_table(settings.getValue('ESXI65'), 'HOST optimization settings', False))
             sys.exit(0)
         if args['list_env_details'] == 'all':
             hosts = settings.getValue('HOST_DETAILS')
@@ -102,6 +107,16 @@ class Parser:
             for host in hosts:
                 client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
                 HostUtil.HostUtil().list_env_detail_compact(client)
+            sys.exit(0)
+
+        if args['dependency_install']:
+            print(os.path.dirname(os.path.abspath(__file__)) )
+            if self.is_os() == 'linux':
+                os.system('pip install -r dependency.txt')
+            elif self.is_os() == 'darwin':
+                os.system('pip install -r dependency.txt')
+            else:
+                os.system('pip install -r dependency.txt')
             sys.exit(0)
 
     def dict_to_table(self, data, header, row_major=True):
@@ -120,3 +135,11 @@ class Parser:
                 x.add_row([i, data[i]])
         x.align = 'l'
         return x
+
+    def is_os(self):
+        if platform == "linux" or platform == "linux2":
+            return "linux"
+        elif platform == "darwin":
+            return "darwin"
+        elif platform == "win32":
+            return "win32"

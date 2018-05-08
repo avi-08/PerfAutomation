@@ -1,0 +1,10 @@
+numpy==1.14.2
+openpyxl==2.5.3
+beautifulsoup4==4.6.0
+cryptography==2.1.4
+pandas==0.22.0
+pyvmomi==6.5.0.2017.5.post1
+PyYAML==3.12
+prettytable==0.7.2
+paramiko==2.1.4
+urllib3==1.22
