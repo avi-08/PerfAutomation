@@ -339,6 +339,3 @@ class Monitor:
         self.vm_stats(workbook=wb, worksheet="VM Stats", f_netstats=open(ns), f_schedstats=open(ss),
                          file_name=filename)
         wb.save(filename)
-
-mon = Monitor()
-mon.get_excel()

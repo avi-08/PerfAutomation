@@ -110,13 +110,13 @@ class Parser:
             sys.exit(0)
 
         if args['dependency_install']:
-            print(os.path.dirname(os.path.abspath(__file__)) )
+            print(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}\dependency.txt')
             if self.is_os() == 'linux':
-                os.system('pip install -r dependency.txt')
+                os.system(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}\dependency.txt')
             elif self.is_os() == 'darwin':
-                os.system('pip install -r dependency.txt')
+                os.system(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}\dependency.txt')
             else:
-                os.system('pip install -r dependency.txt')
+                os.system(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}\dependency.txt')
             sys.exit(0)
 
     def dict_to_table(self, data, header, row_major=True):
