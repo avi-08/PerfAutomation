@@ -2,6 +2,8 @@
 
   "LOG_DIR": "C:\\Users\\somanathr\\Desktop\\PAFLogs",
 
+  "LOG_MICS": "C:\\Users\\somanathr\\Desktop\\PAFLogs\\MICS_",
+
   "LOG_FILE_PREFIX": "PAFlog_",
 
   "PARAMIKO_LOG_FILE": "paramiko_logs.log",

@@ -52,6 +52,21 @@ class Monitor:
             return True
         else:
             return False
+    def start_trex(self,client ):
+        stdin, stdout, stderr = client.exec_command(f'./home/trex/t-rex-64 -i -c 1')
+        a = stdout.read().decode()
+        if a:
+            return True
+        else:
+            return False
+
+    def start_dpdk(self, client):
+        stdin, stdout, stderr = client.exec_command(f'./startshell.sh')
+        a = stdout.read().decode()
+        if a:
+            return True
+        else:
+            return False
 
     def sys(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
         # wb = openpyxl.load_workbook(file_name)

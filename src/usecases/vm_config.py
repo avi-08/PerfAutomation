@@ -27,18 +27,13 @@ _LOGGER = LogUtil.LogUtil()
 
 def vm_config(keep_defaults=False):
     hosts = settings.getValue('HOST_DETAILS')
-    print (settings.getValue('ESXI_65')['VM_NAMES'])
-    # vm_conf = json.load(open(r'env_conf\vm.json'))
+    # print (settings.getValue('ESXI_65')['VM_NAMES'])
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
     conf_host = Host.HostConfig()
     parser = ParserUtil.Parser()
     for host in hosts:
-        # print(host['HOST'], host['USER'], host['PASSWORD'])
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
-        # print(client)
-        # vms = vmUtil.get_vm_list(client)
-        # temp_vms = vm_conf['ESXI_65']['VM_NAMES']
         temp_vms = settings.getValue('ESXI_65')['VM_NAMES']
         # print(temp_vms)
         ver = conf_host.get_host_version(client)
@@ -67,14 +62,14 @@ def vm_config(keep_defaults=False):
                 if status:
                     _LOGGER.info(f'changing CPU reservation :{status}')
                 else:
-                    _LOGGER.error(f'changing CPU reservation :{status}')
+                    _LOGGER.error(f'CPU reservation status :{status}')
 
                 _LOGGER.info(f'checking CPU share :{vmTune.verify_cpu_share(client, vm)}')
                 status = vmTune.config_cpu_share(client, vm)
                 if status:
                     _LOGGER.info(f'changing CPU share : {status}')
                 else:
-                    _LOGGER.error(f'chaging CPU share : {status}')
+                    _LOGGER.error(f'changing CPU share : {status}')
 
                 _LOGGER.info(f'checking Memory reservation : {vmTune.verify_mem_reservation(client,vm)}')
                 status = vmTune.config_mem_reservation(client, vm)
@@ -204,6 +199,7 @@ def vm_config(keep_defaults=False):
         HostSession.HostSession().disconnect(client)
 
 def get_env_data(client, vm):
+    _LOGGER.info(f'Getting Environment Details')
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
     parser = ParserUtil.Parser()
