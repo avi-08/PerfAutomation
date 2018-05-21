@@ -1,6 +1,7 @@
 import math, re
-from src.util import ParserUtil
-
+from src.util import ParserUtil, LogUtil
+from src.env_conf import settings
+_LOGGER = LogUtil.LogUtil()
 
 class HostUtil:
     def __init__(self):
@@ -361,6 +362,7 @@ class HostUtil:
         :return: <dict> dvs Details
         """
         stdin, stdout, stderr = client.exec_command('esxcfg-vswitch --list')
+        """
         a = stdout.read().decode()
         a1 = a.split('\n\n')
         aa = a1[2].split('\n')
@@ -377,6 +379,9 @@ class HostUtil:
             value = re.split('\s{2,}', aa[i].strip())
             for j, key in enumerate(keys):
                 b[key].append(value[j])
+        """
+        b = {}
+        b['switch'] = stdout.read().decode()
         return b
 
     def get_dvport_id(self, client):
@@ -422,7 +427,9 @@ class HostUtil:
         keys.append('Multipath')
         keys.append('PluginDisplay Name')
         for i in range(1, len(aa) - 1):
-            value = re.split('\s{2,}', aa[i].strip())
+            value = re.split('\s{1,}', aa[i].strip())
+            value[5] = ''.join(value[5:])
+            del value[6:]
             del value[2]
             for i, key in enumerate(keys):
                 b[key].append(value[i])
@@ -437,15 +444,14 @@ class HostUtil:
         b = {}
         a = self.get_cpu_info(client)
         b['CPU Model Name'] = a['cpuModelName']
-        b[
-            'CPU sockets'] = f"{a['numPackages']} sockets, {(str(int(int(a['numCores'])/int(a['numPackages']))))} cores per socket\n"
+        b['CPU sockets'] = f"{a['numPackages']} sockets, {(str(int(int(a['numCores'])/int(a['numPackages']))))} cores per socket\n"
         ls = []
         ss = self.get_vswitch(client)
         ds = self.get_dvs_name(client)
         for i in ss['Uplinks']:
             ls += i.split(',')
-        for i in ds['Uplinks']:
-            ls += i.split(',')
+        #for i in ds['Uplinks']:
+        #  ls += i.split(',')
         a = self.get_nics(client)
         t = list()
         for l in ls:
@@ -461,8 +467,8 @@ class HostUtil:
                             s += data + ' - '
             s += '\n'
         b['NIC Details'] = s
-        t = ss['Switch Name'] + ds['DVS Name']
-        b['Switch Name'] = ','.join(t)
+        #t = ss['Switch Name'] + ds['DVS Name']
+        #b['Switch Name'] = ','.join(t)
         return b
 
     def get_server_details(self, client):
@@ -516,7 +522,10 @@ class HostUtil:
 
     def list_env_details(self, client):
         parse = ParserUtil.Parser()
-        f = open("env_details.txt", "a+")
+        path = settings.getValue('LOG_DIR')+"\env_details.txt"
+        print(f'saving the text file in {path}')
+        _LOGGER.info(f'saving the text file in {path}')
+        f = open(path, "a+")
         b = {}
         a = parse.dict_to_table(self.get_platform_details(client), '', False)
         b['platform Details'] = a
@@ -585,7 +594,10 @@ class HostUtil:
 
     def list_env_detail_compact(self, client):
         parse = ParserUtil.Parser()
-        f = open("env_details_compact.txt", "a+")
+        path = settings.getValue('LOG_DIR') + "\env_details_compact.txt"
+        print(f'saving the text file in {path}')
+        _LOGGER.info(f'saving the text file in {path}')
+        f = open(path, "a+")
         a = self.hardware_detail_compact(client)
         c = parse.dict_to_table(a, 'Hardware Details', False)
         print(c)
