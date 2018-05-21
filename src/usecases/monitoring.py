@@ -26,7 +26,7 @@ class Monitor:
         stdin, stdout, stderr = client.exec_command(f'sudo python ')
         return stdout.read().decode()
 
-    def get_netstats(self,client, filename):
+    def get_netstats(self, client, filename):
         stdin, stdout, stderr = client.exec_command(f'cat {filename}')
         logging.debug(f'Excuting command : cat {filename}')
         return stdout.read().decode()

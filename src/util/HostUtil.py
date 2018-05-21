@@ -560,8 +560,8 @@ class HostUtil:
         b['vswitch Detail'] = a
         a = parse.dict_to_table(self.get_pg_name(client), '')
         b['Port group name'] = a
-        a = parse.dict_to_table(self.get_dvs_name(client), '')
-        b['DVS details'] = a
+        #a = parse.dict_to_table(self.get_dvs_name(client), '')
+        #b['DVS details'] = a
         a = parse.dict_to_table(self.get_dvport_id(client), '')
         b['DVport ID'] = a
         a = parse.dict_to_table(self.get_vm_details(client), '')

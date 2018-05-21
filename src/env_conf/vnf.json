@@ -2,8 +2,8 @@
   "VM_DETAILS": [
     {
       "VM_NAME": "TESTDPDK2",
-      "DATASTORE": "Datastore 2",
-      "NETWORKS": "VM Network,VM Network"
+      "DATASTORE": "TEST-1",
+      "NETWORKS": "demo-pg,demo-pg"
     }
   ]
 }

@@ -366,7 +366,6 @@ def unit_test():
     Sample function to test above functions
     """
     # from src.util import HostSession
-
     #_NICS = []
     #_HOST = '10.107.182.18'
     #_USERNAME = 'root'

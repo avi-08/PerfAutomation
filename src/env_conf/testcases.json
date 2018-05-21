@@ -4,7 +4,13 @@
       "NAME": "TC1",
       "DESCRIPTION": "a single vm, 2 port, single flow test case",
       "FLOWTYPE": "single",
-      "VM_NAME": "TEST-VM"
+      "VM_NAME": ["TESTDPDK2"]
+    },
+    {
+      "NAME": "TC2",
+      "DESCRIPTION": "2 vm, 2 port, multiple flow test case",
+      "FLOWTYPE": "multiple",
+      "VM_NAME": ["TESTDPDK2", "TESTDPDK3"]
     }
   ]
 }

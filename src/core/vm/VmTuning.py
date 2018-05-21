@@ -303,6 +303,7 @@ class VmTunning :
         vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
             command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity ="'
+            _LOGGER.info(f'Executing command :{command}')
             stdin, stdout, stderr = session.exec_command(command)
             r = stdout.read().decode()
             mod = {}
@@ -323,8 +324,8 @@ class VmTunning :
         """
         vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep latency')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity ="')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity ="')
             r = stdout.read().decode()
             _LOGGER.debug(f'{r}')
             st = re.search('"(.*?)"', r)
@@ -336,7 +337,7 @@ class VmTunning :
 
     def get_cpu_reservation(self, session, vmname):
         """
-        Get the CPU reservation details
+        Get the CPU reservation detailss
         :param session: paramiko SSHClient object
         :param vmname: Name of the Virtual machine
         :return:
@@ -564,6 +565,7 @@ class VmTunning :
         :return:
         """
         command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i'
+        _LOGGER.info(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}

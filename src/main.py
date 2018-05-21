@@ -51,7 +51,6 @@ def main():
     # Check if there are any specific operations to perform, otherwise continue the normal framework execution.
     if args['collect_tech_support']:
         tech_support.TechSupport().generate_tech_support('host', args['collect_tech_support'])
-    """
     if args['perform']:
         # Apply host optimizations
         if args['perform'] == 'host_config':
@@ -107,6 +106,6 @@ def main():
         logger.info('VM optimization complete')
         trex = Trex.Trex()
         trex.trafficGen()
-    """
+
 
 main()

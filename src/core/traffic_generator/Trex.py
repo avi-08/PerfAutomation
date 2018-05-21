@@ -2,6 +2,7 @@ from src.util import HostSession
 import json, threading
 import logging
 from src.usecases import monitoring
+#from src.core.traffic_generator.trex_client.stl import trex_automated
 from src.env_conf import settings
 from src.util import ParserUtil
 
@@ -19,21 +20,21 @@ class Trex:
             "tx": []
         }
 
-    def monitorTest(self, client, frameSize=False):
-
+    def monitorTest(self, client, test_case=None, frameSize=False):
         if frameSize:
             _LOGGER.info(f'Executing the script trex_automated.py with {frameSize}')
-            stdin, stdout, stderr = client.exec_command(f'python /home/trex/trex_client/stl/trex_monitor.py tc-1.1 {frameSize}')
+            stdin, stdout, stderr = client.exec_command(f'python /home/trex/trex_client/stl/trex_monitor.py {test_case} {frameSize}')
             a = stdout.read().decode()
             _LOGGER.info(f'Results from the tRex with frame size {frameSize} :\n {a}')
             print(a)
         else:
-            stdin, stdout, stderr = client.exec_command(f'python /home/trex/trex_client/stl/trex_automated.py tc-1.1 ')
+            stdin, stdout, stderr = client.exec_command(f'python /home/trex/trex_client/stl/trex_automated.py {test_case} ')
             a = stdout.read().decode()
+            # trex_automated.main()
             _LOGGER.info(f'Results from the tRex \n {a}')
             print(a)
 
-    def get_rx_thread(self,netstats):
+    def get_rx_thread(self, netstats):
         data = netstats['stats'][0]['sys']
         for key in data:
             if data[key]['used'] > 80:
@@ -56,7 +57,7 @@ class Trex:
         total = [] * 6
         count = 0
         str1 = ""
-        print(content)
+        # print(content)
         """
         netstats = eval(Monitoring.getNetStats(client, 'netstats.logs'))
         print(netstats)
@@ -91,13 +92,32 @@ class Trex:
     def trafficGen(self):
         monitor = monitoring.Monitor()
         _LOGGER.info('Initating tRex...')
-        trafficGen = json.load(open(r'env_conf\trafficGen.json'))
-        host = json.load(open(r'env_conf\host.json'))
-        trafficGen = trafficGen['TREX']
-        host = host['HOST_DETAILS']
-        print(host)
+        #trafficGen = json.load(open(r'env_conf\trafficGen.json'))
+
+        #host = json.load(open(r'env_conf\host.json'))
+        trafficGen = settings.getValue('TREX')
+        #host = host['HOST_DETAILS']
+        #print(host)
         client = HostSession.HostSession().connect(trafficGen['IP'], trafficGen['USERNAME'], trafficGen['PASSWORD'], False)
-        self.monitorTest(client)
+        testc = settings.getValue('TESTCASES')
+        t_file = settings.getValue('TESTER-CONF')
+        tc = ''
+        for tc in testc:
+            print('first inside')
+            if tc['FLOWTYPE'] == 'multiple':
+                print('flow type is multiple')
+                for tf in t_file:
+                    print(tf['name'])
+                    if len(tf['flows']) > 1:
+                        print(f'Executing Test case :{tc}')
+                        tc = 'tc-1.2'
+                        self.monitorTest(client, test_case=tc)
+            if tc['FLOWTYPE'] =='single':
+                for tf in t_file:
+                    if len(tf['flows'])==1:
+                        print(f'Executing Test case :{tc}')
+                        tc = 'tc-1.1'
+                        self.monitorTest(client, test_case=tc)
         file_data = self.get_data_dict(monitor.get_traffic(client, 'tc-1.1.txt'))
         # print(Monitoring.getTraffic(client, '/home/trex/Results/tc-1.1.txt'))
         _LOGGER.info(f'{file_data}')
@@ -108,9 +128,9 @@ class Trex:
             for frame in self.result_data['framesizes']:
                 _LOGGER.info(f'Running traffic with Frame Size : {frame}')
                 self.monitorTest(client, frame)
-                t1 = threading.Thread(target=monitor.get_netstats, args=(client2, 5, 'netstats.logs'))
-                t2 = threading.Thread(target=monitor.get_schedstats, args=(client3, 'scstats.logs'))
-                t3 = threading.Thread(target=self.monitorTest, args=(client, frame))
+                t1 = threading.Thread(target=monitor.monitor_netstats, args=(client2, 5, 'netstats.logs'))
+                t2 = threading.Thread(target=monitor.monitor_schedstats, args=(client3, 'scstats.logs'))
+                t3 = threading.Thread(target=self.monitorTest, args=(client, frame, tc))
                 _LOGGER.info(f'creating the thread for Running traffic with {frame} frame size')
                 t3.start()
                 _LOGGER.info(f'creating the thread for net-stats -i <duration> -t WicQv -A  > netstats.logs')
@@ -121,11 +141,16 @@ class Trex:
                 t1.join()
                 t2.join()
                 netstats = eval(monitor.get_netstats(client2, 'netstats.logs'))
-                print(netstats)
+                # print(netstats)
                 self.get_rx_thread(netstats)
                 schedstats = monitor.get_schedstats(client3, 'scstats.logs')
+                if len(self.result_data['rx']) == 0:
+                    self.result_data['rx'] = [0]*len(self.result_data['framesizes'])
+                if len(self.result_data['tx']) == 0:
+                    self.result_data['tx'] = [0]*len(self.result_data['framesizes'])
                 _LOGGER.info(f'Result Data for Graph : {self.result_data}')
-                print(ParserUtil.Parser.dict_to_table(self.result_data,'result', False))
+                # print(ParserUtil.Parser.dict_to_table(self.result_data,'Result', False))
+
 
         """
         netstats = eval(getNetStats(client1, 'netstats.logs'))

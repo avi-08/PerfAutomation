@@ -1,0 +1,84 @@
+{
+  "TESTER-CONF": [
+    {
+      "test": 1,
+      "name": "tc-1.1",
+      "test-result": "/home/administrator/Desktop/Trex-result/tc-1.1_",
+      "max-iteration": 3,
+      "max-duration": 3,
+      "acceptable-loss": 0.001,
+      "adaptive": true,
+      "port_bw": 4000,
+      "packet-size": [64, 128, 256, 512, 1024],
+      "flows": [
+        {
+          "flow": "first-flow",
+          "srcmac": "00:0C:29:1B:F7:10",
+          "dstmac": "00:0c:29:4c:89:05",
+          "srcip": "1.1.1.1",
+          "dstip": "2.1.1.2",
+          "srcport": 1025,
+          "dstport": 12,
+          "vlan": null,
+          "egress_port": [
+            0
+          ],
+          "ingress_port": [
+            0
+          ],
+          "rate": "auto",
+          "percent": 25
+        }
+      ]
+    },
+    {
+      "test": 2,
+      "name": "tc-1.2",
+      "test-result": "/home/administrator/Desktop/Trex-result/tc-1.2_",
+      "max-iteration": 2,
+      "max-duration": 3,
+      "acceptable-loss": 0.001,
+      "adaptive": true,
+      "port_bw": 1000,
+      "packet-size": [64, 128, 256, 512, 1024],
+      "flows": [
+        {
+          "flow": "first-flow",
+          "srcmac": "00:0C:29:1B:F7:10",
+          "dstmac": "00:0c:29:4c:89:05",
+          "srcip": "1.1.1.1",
+          "dstip": "2.1.1.2",
+          "srcport": 1025,
+          "dstport": 12,
+          "vlan": null,
+          "egress_port": [
+            0
+          ],
+          "ingress_port": [
+            0
+          ],
+          "rate": "auto",
+          "percent": 50
+        },
+        {
+          "flow": "second-flow",
+          "srcmac": "00:0C:29:1B:F7:10",
+          "dstmac": "00:0c:29:4c:89:05",
+          "srcip": "2.1.1.2",
+          "dstip": "1.1.1.1",
+          "srcport": 1025,
+          "dstport": 12,
+          "vlan": null,
+          "egress_port": [
+            0
+          ],
+          "ingress_port": [
+            0
+          ],
+          "rate": "auto",
+          "percent": 50
+        }
+      ]
+    }
+  ]
+}

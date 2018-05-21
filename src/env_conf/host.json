@@ -1,13 +1,12 @@
 {
 "HOST_DETAILS": [
     {
-        "HOST": "10.110.209.156",
+        "HOST": "10.110.209.23",
         "USER": "root",
         "PASSWORD": "ca$hc0w",
-        "NICS": "vmnic6"
+        "NICS": "vmnic4"
     }
  ],
-
 
 "ESXI65": {
     "ENABLE_RSS": true,

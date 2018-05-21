@@ -76,7 +76,7 @@ class TechSupport:
                             f.write(f'Error: \n{errors}')
                         logger.info('Collecting environment details...')
                         filename = os.path.join(dirpath, f'env_details.log')
-                        HostUtil.HostUtil().list_env_details(target_client, filename)
+                        HostUtil.HostUtil().list_env_details(target_client)
                         HostSession.HostSession().disconnect(target_client)
 
 

@@ -11,7 +11,7 @@ class VMDeploy:
     def __init__(self):
         pass
 
-    def deploy_vm(self):
+    def deploy_vm(self, vmname='VM1'):
         vms = settings.getValue('VM_DETAILS')
         for vm in vms:
             vm_name = vm['VM_NAME']
@@ -26,7 +26,8 @@ class VMDeploy:
                     host = hosts['HOST']
                     uname = hosts['USER']
                     password = hosts['PASSWORD']
-                    cmd = [tool_path, '--acceptAllEulas', '--powerOn', f'--datastore="{datastore}"', f'--name="{vm_name}"', f'"--net:PG1={networks[0]}"', f'"--net:PG2={networks[1]}"', '"C:\\Users\\somanathr\\Desktop\\dpdk.ova"', f'"vi://{uname}:{password}@{host}"']
+                    # cmd = [tool_path, '--acceptAllEulas', '--powerOn', f'--datastore="{datastore}"', f'--name="{vm_name}"', f'"--net:PG1={networks[0]}"', f'"--net:PG2={networks[1]}"', '"C:\\Users\\somanathr\\Desktop\\dpdk.ova"', f'"vi://{uname}:{password}@{host}"']
+                    cmd = [tool_path, '--acceptAllEulas', '--powerOn', f'--datastore="{datastore}"', f'--name="{vmname}"', f'--network="{networks[0]}"', '"C:\\Users\\somanathr\\Desktop\\dpdk.ova"', f'"vi://{uname}:{password}@{host}"']
                     _LOGGER.debug(f'Executing command: {" ".join(cmd)}')
                     _LOGGER.info('Deploying vm. This might take a few minutes...')
                     os.system(" ".join(cmd))

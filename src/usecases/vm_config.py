@@ -6,7 +6,7 @@
     4.Verify Latency sensitivity is taking effect.
     5.Verify the vNIC adapter type.
     6.Verify the vNIC TX thread allocation is set.
-    7.Verify the SysContext is set to the no. of thread to be pinned.
+    7.Verify the SysContext is set to the number of thread to be pinned.
     8.Verify the vm NUMA is aligned to the NUMA of the physical NIC.
 
     The above verification are done to ensure that it will not impact the overall networking throughput delivered.
@@ -27,8 +27,8 @@ _LOGGER = LogUtil.LogUtil()
 
 def vm_config(keep_defaults=False):
     hosts = settings.getValue('HOST_DETAILS')
-    #print(hosts)
-    vm_conf = json.load(open(r'env_conf\vm.json'))
+    print (settings.getValue('ESXI_65')['VM_NAMES'])
+    # vm_conf = json.load(open(r'env_conf\vm.json'))
     vmTune = VmTuning.VmTunning()
     vmUtil = VmUtil.VmUtility()
     conf_host = Host.HostConfig()
@@ -38,8 +38,9 @@ def vm_config(keep_defaults=False):
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         # print(client)
         # vms = vmUtil.get_vm_list(client)
-        temp_vms = vm_conf['ESXI_65']['VM_NAMES']
-        #print(temp_vms)
+        # temp_vms = vm_conf['ESXI_65']['VM_NAMES']
+        temp_vms = settings.getValue('ESXI_65')['VM_NAMES']
+        # print(temp_vms)
         ver = conf_host.get_host_version(client)
         _NICS = host['NICS'].split(',')
         _LOGGER.info('Verifying optimization on virtual machine')
@@ -50,7 +51,7 @@ def vm_config(keep_defaults=False):
             """
             print(parser.dict_to_table(get_env_data(client, vm), 'Current VM Status', False))
             if ver.find('6.5') > -1:
-                param = vm_conf['ESXI_65']
+                param = settings.getValue('ESXI_65')
                 _LOGGER.info(f'HOST VERSION : ESXI 6.5 ')
                 _LOGGER.info(f'virtual machine : {vm}')
                 vmUtil.power_off_vm(client, vm)
@@ -125,7 +126,7 @@ def vm_config(keep_defaults=False):
                 """
                     ESXI VERSION 6.0 U2
                 """
-                param = vm_conf['ESXI_60U2']
+                param = settings.getValue('ESXI_60U2')
                 _LOGGER.info(f'HOST VETSION : ESXI 6.0 U2')
                 _LOGGER.info('Verifying optimization on virtual machine')
                 vmUtil.power_off_vm(client, vm)

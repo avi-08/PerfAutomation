@@ -114,7 +114,6 @@ def main():
         print(args['testcase'])
         tcase = settings.getValue('TESTCASES')
         for tc in tcase:
-            """
             if args['testcase'] in tc['NAME']:
                 logger.info('Initiating host optimizations.')
                 if host_config.host_config() == False:
@@ -134,9 +133,7 @@ def main():
                 logger.info('VM optimization complete')
                 trex = Trex.Trex()
                 trex.trafficGen()
-            """
-        trex = Trex.Trex()
-        trex.trafficGen()
+
         logger.info('Initiating host optimizations.')
         if host_config.host_config() == False:
             logger.error('Unable to configure host optimizations.')
