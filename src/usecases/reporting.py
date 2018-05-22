@@ -1,7 +1,7 @@
 import re
 import logging
 import json, openpyxl
-import sys
+import sys, os
 from prettytable import PrettyTable
 from openpyxl import Workbook
 from src.env_conf import settings

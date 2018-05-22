@@ -29,7 +29,7 @@ class VmTunning :
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
         _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
         data = stdout.read().decode()
-        _LOGGER.info(f'Result of the output : {data}')
+        _LOGGER.debug(f'\nResult of the output : {data}\n')
         data = data.split('\n')
         res = ''
         for d in data:

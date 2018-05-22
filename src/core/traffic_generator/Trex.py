@@ -102,6 +102,7 @@ class Trex:
         testc = settings.getValue('TESTCASES')
         t_file = settings.getValue('TESTER-CONF')
         tc = ''
+        """
         for tc in testc:
             print('first inside')
             if tc['FLOWTYPE'] == 'multiple':
@@ -118,6 +119,7 @@ class Trex:
                         print(f'Executing Test case :{tc}')
                         tc = 'tc-1.1'
                         self.monitorTest(client, test_case=tc)
+        """
         file_data = self.get_data_dict(monitor.get_traffic(client, 'tc-1.1.txt'))
         # print(Monitoring.getTraffic(client, '/home/trex/Results/tc-1.1.txt'))
         _LOGGER.info(f'{file_data}')
@@ -128,22 +130,22 @@ class Trex:
             for frame in self.result_data['framesizes']:
                 _LOGGER.info(f'Running traffic with Frame Size : {frame}')
                 self.monitorTest(client, frame)
-                t1 = threading.Thread(target=monitor.monitor_netstats, args=(client2, 5, 'netstats.logs'))
-                t2 = threading.Thread(target=monitor.monitor_schedstats, args=(client3, 'scstats.logs'))
+                t1 = threading.Thread(target=monitor.monitor_netstats, args=(client2, 5, 'server_netstats.logs'))
+                t2 = threading.Thread(target=monitor.monitor_schedstats, args=(client3, 'server_schedstats.logs'))
                 t3 = threading.Thread(target=self.monitorTest, args=(client, frame, tc))
                 _LOGGER.info(f'creating the thread for Running traffic with {frame} frame size')
                 t3.start()
-                _LOGGER.info(f'creating the thread for net-stats -i <duration> -t WicQv -A  > netstats.logs')
+                _LOGGER.info(f'creating the thread for net-stats -i <duration> -t WicQv -A  > server_netstats.logs')
                 t1.start()
-                _LOGGER.info(f'creating the thread for sched-stats -t pcpu-stats > scstats.logs')
+                _LOGGER.info(f'creating the thread for sched-stats -t pcpu-stats > server_schedstats.logs')
                 t2.start()
                 t3.join()
                 t1.join()
                 t2.join()
-                netstats = eval(monitor.get_netstats(client2, 'netstats.logs'))
+                netstats = eval(monitor.get_netstats(client2, 'server_netstats.logs'))
                 # print(netstats)
                 self.get_rx_thread(netstats)
-                schedstats = monitor.get_schedstats(client3, 'scstats.logs')
+                schedstats = monitor.get_schedstats(client3, 'server_schedstats.logs')
                 if len(self.result_data['rx']) == 0:
                     self.result_data['rx'] = [0]*len(self.result_data['framesizes'])
                 if len(self.result_data['tx']) == 0:

@@ -14,8 +14,8 @@ from src.env_conf import settings
 from src.util import LogUtil, ParserUtil
 from src.usecases import host_config
 from src.usecases import vm_deploy
-from src.usecases import vm_config
-from src.usecases import tech_support
+from src.usecases import vm_config,monitoring
+from src.usecases import tech_support,reporting
 
 def main():
     """
@@ -90,6 +90,12 @@ def main():
         if args['perform'] == 'tech_support':
             tech_support.TechSupport().generate_tech_support('Host')
 
+        if args['perform'] == 'monitoring':
+            pass
+
+        if args['perform'] == 'reporting':
+            reporting.Report().get_excel()
+            pass
     if args['host_optimization_type']:
         if args['host_optimization_type'] == 'standard+splittx':
             if not host_config.host_config(splittx=True):
@@ -133,7 +139,7 @@ def main():
                 logger.info('VM optimization complete')
                 trex = Trex.Trex()
                 trex.trafficGen()
-
+                sys.exit(0)
         logger.info('Initiating host optimizations.')
         if host_config.host_config() == False:
             logger.error('Unable to configure host optimizations.')
