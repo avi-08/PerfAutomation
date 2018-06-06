@@ -30,16 +30,21 @@ def host_config(keep_defaults=False, splittx=False, splitrx=False, rss=False):
     :param keep_defaults: (bool) if True, skips the configuration of host and just gets the values of default settings on host
     :return: (bool) True If all optimizations are applied successfully else False.
     """
+    print(f'''\n{'-'*60}\n\t\t\t\tHost Optimization\n{'-'*60}\n''')
     hosts = settings.getValue('HOST_DETAILS')
     # Create object of HostConfig() to access functions
     config_host = Host.HostConfig()
     for host in hosts:
+        print(f' - Getting the Host current Status')
+        get_host_config(header=f"Current Host Status ({host['HOST']})")
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
         _NICS = host['NICS'].split(',')
         logger.info(f'Getting ESXi version details')
         ver = config_host.get_host_version(client)
         logger.info(f'{ver}')
         logger.info('Start applying optimizations for the specific Esxi version')
+        print(f' - Getting configuration settings from host.json')
+        print(f' - Applying the host Optimization.')
         if ver.find('6.5') > -1:
             logger.info('Getting configuration settings from host.json')
             params = settings.getValue('ESXI65')
@@ -157,13 +162,15 @@ def host_config(keep_defaults=False, splittx=False, splitrx=False, rss=False):
                                      : config success = {config_host.config_queue_pairing(client, enable=params["ENABLE_QUEUE_PAIRING"])}')
             if splittx:
                 for nic in _NICS:
-                    logger.info(f'Configuring Split TX mode  ={params["ENABLE_TX_SPLIT"]}: isEnabled={config_host.is_tx_split_enabled(client, nic)} \
+                    logger.info(f'Configuring Split TX mode  ={params["ENABLE_TX_SPLIT"]}: isEnabled={config_host.is_tx_split_enabled(client, nic)}\
                                                      : config success = {config_host.config_tx_split(client, nic, enable=params["ENABLE_TX_SPLIT"])}')
+        print(f' - Getting the Host Status after Optimizations')
+        get_host_config(header=f"Post Host Optimization ({host['HOST']})")
         HostSession.HostSession().disconnect(client)
         return True
 
 
-def get_host_config():
+def get_host_config(header='Host Optimization Status'):
     parse = ParserUtil.Parser()
     hosts = settings.getValue('HOST_DETAILS')
     # Create object of HostConfig() to access functions
@@ -200,6 +207,7 @@ def get_host_config():
             b['Queue paring status '] = a['queue_pairing_enabled']
             a = config.get_sw_tx_queue_size(client)
             b['Software TX queue size'] = a['sw_tx_queue_size']
-            print(parse.dict_to_table(b,'Host Optimization Status',False))
+            print(parse.dict_to_table(b, header, False))
+            print('\n')
         HostSession.HostSession().disconnect(client)
     pass

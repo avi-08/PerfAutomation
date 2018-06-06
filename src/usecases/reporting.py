@@ -1,28 +1,27 @@
-import re
-import logging
 import json, openpyxl
 import sys, os
 from prettytable import PrettyTable
-from openpyxl import Workbook
 from src.env_conf import settings
 from src.util import ParserUtil, LogUtil
 
 _LOGGER = LogUtil.LogUtil()
 
+
 class Report:
     def __init__(self):
         pass
 
-    def sys(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def sys(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         _LOGGER.info(f'Parsing data for SYS')
         # wb = openpyxl.load_workbook(file_name)
         ws = workbook.create_sheet(worksheet)
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         if "hostname" in theJSON["sysinfo"]:
-            print("Sys stats for " + theJSON["sysinfo"]["hostname"])
+            if print_flag:
+                print("Sys stats for " + theJSON["sysinfo"]["hostname"])
             for stat in theJSON["stats"]:  # Traversing a list
-                print("Iteration Number=" + str(stat["iteration"]))
+                if print_flag:
+                    print("Iteration Number=" + str(stat["iteration"]))
             temp = ['Name', 'Id', 'used', 'latencySensitivity', 'exclaff', 'sysoverlap']
             table = PrettyTable(temp)
             ws.append(temp)
@@ -42,21 +41,23 @@ class Report:
                              sys_attrib["exclaff"], sys_attrib["sysoverlap"]]
                     table_exclaff.add_row(temp1)
                     ws.append(temp1)
-        print(table)
-        print("Entires with exclussive affinity")
-        print(table_exclaff)
-        print(f'saving data as {worksheet} in {file_name}')
+        if print_flag:
+            print(table)
+            print("Entires with exclussive affinity")
+            print(table_exclaff)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-    def vcpus(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def vcpus(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         _LOGGER.info(f'Parsing data for vCPUs')
         worksheet = 'vcpus'
         ws = workbook.create_sheet(worksheet)
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         if "hostname" in theJSON["sysinfo"]:
-            print("CPU stats for " + theJSON["sysinfo"]["hostname"])
+            if print_flag:
+                print("CPU stats for " + theJSON["sysinfo"]["hostname"])
             for stat in theJSON["stats"]:  # Traversing a list
-                print("Iteration Number=" + str(stat["iteration"]))
+                if print_flag:
+                    print("Iteration Number=" + str(stat["iteration"]))
                 temp = ['Name', 'Id', 'used', 'latencySensitivity', 'exclaff']
                 table = PrettyTable(temp)
                 ws.append(temp)
@@ -80,22 +81,23 @@ class Report:
                         temp1 = [vcpu_attrib["name"], vcpu_attrib["id"], vcpu_attrib["used"], latSen, exclaff]
                         table_exclaff.add_row(temp1)
                         ws.append(temp1)
+                if print_flag:
+                    print(table)
+                    print("entries with exclaff")
+                    print(table_exclaff)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-                print(table)
-                print("entries with exclaff")
-                print(table_exclaff)
-        print(f'saving data as {worksheet} in {file_name}')
-
-    def vm_stats(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def vm_stats(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         _LOGGER.info(f'Parsing data for VM_stats')
         worksheet = 'VM_stats'
         ws = workbook.create_sheet(worksheet)
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         if "hostname" in theJSON["sysinfo"]:
-            print(f'VM stats for {theJSON["sysinfo"]["hostname"]} \tpps=Packets Per Second\teps=Errors per Second')
+            if print_flag:
+                print(f'VM stats for {theJSON["sysinfo"]["hostname"]} \tpps=Packets Per Second\teps=Errors per Second')
         for stat in theJSON["stats"]:
-            print(f'Iteration Number= \" {str(stat["iteration"])}\"')
+            if print_flag:
+                print(f'Iteration Number= \" {str(stat["iteration"])}\"')
         temp = ['VM Port', 'switch', 'vnic_dev', 'txpps', 'txpps_drv', 'txeps', 'txeps_drv', 'txmbps', 'txmbps_drv',
                 'rxpps', 'rxpps_drv', 'rxeps', 'rxeps_drv', 'rxmbps', 'rxmbps_drv']
         table = PrettyTable(temp)
@@ -114,20 +116,22 @@ class Report:
                         rxmbps_drv]
                 table.add_row(temp)
                 ws.append(temp)
-        print(table)
-        print(f'saving data as {worksheet} in {file_name}')
+        if print_flag:
+            print(table)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-    def check_drop(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def check_drop(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         _LOGGER.info(f'Parsing data for Check Drop')
         # workbook = openpyxl.load_workbook(file_name)
         ws = workbook.create_sheet(worksheet)
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         if "hostname" in theJSON["sysinfo"]:
             hdata = "Stats for " + theJSON["sysinfo"]["hostname"] + "\tpps=Packets Per Second\teps=Errors per Second"
-            print(hdata)
+            if print_flag:
+                print(hdata)
             for stat in theJSON["stats"]:
-                print("Iteration Number=" + str(stat["iteration"]))
+                if print_flag:
+                    print("Iteration Number=" + str(stat["iteration"]))
             temp = ['Port', 'switch', 'vnic_dev', 'txpps', 'txpps_drv', 'txeps', 'txeps_drv', 'txmbps', 'txmbps_drv',
                     'rxpps', 'rxpps_drv', 'rxeps', 'rxeps_drv', 'rxmbps', 'rxmbps_drv']
             table = PrettyTable(temp)
@@ -146,19 +150,21 @@ class Report:
                             port["rxmbps"], rxmbps_drv]
                     table.add_row(data)
                     ws.append(data)
-        print(table)
-        print(f'saving data as {worksheet} in {file_name}')
+        if print_flag:
+            print(table)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-    def check_txrx_threads(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def check_txrx_threads(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         # wb = openpyxl.load_workbook(file_name)
         _LOGGER.info(f'Parsing data for Check Tx and Rx ')
         ws = workbook.create_sheet(worksheet)
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         if "hostname" in theJSON["sysinfo"]:
-            print("Threads inventory for " + theJSON["sysinfo"]["hostname"])
+            if print_flag:
+                print("Threads inventory for " + theJSON["sysinfo"]["hostname"])
             for stat in theJSON["stats"]:  # Traversing a list
-                print("Iteration Number=" + str(stat["iteration"]))
+                if print_flag:
+                    print("Iteration Number=" + str(stat["iteration"]))
             temp = ['Port', 'Switch', 'Thread Id', 'Name', 'Usage', 'Ready', 'Cstp', 'latencySen', 'exclaff']
             table = PrettyTable(temp)
             ws.append(temp)
@@ -185,24 +191,26 @@ class Report:
                                      sys_dict[thread]["latencySensitivity"], sys_dict[thread]["exclaff"]]
                             table_exclaff.add_row(temp1)
                             ws.append(temp1)
-        print(table)
-        print("Entries with exclusve affinity")
-        print(table_exclaff)
-        print(f'saving data as {worksheet} in {file_name}')
+        if print_flag:
+            print(table)
+            print("Entries with exclusve affinity")
+            print(table_exclaff)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-    def exclaff(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def exclaff(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         _LOGGER.info(f'Parsing data for Exclaff')
         ws = workbook.active
         ws.title = worksheet
         ws['A1'] = 'Scheduler stats'
         sched_stats_file = f_schedstats
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         ws.append(['\n'])
         if "hostname" in theJSON["sysinfo"]:
-            print("vCPU affinity info for " + theJSON["sysinfo"]["hostname"])
+            if print_flag:
+                print("vCPU affinity info for " + theJSON["sysinfo"]["hostname"])
             for stat in theJSON["stats"]:
-                print("Iteration Number=" + str(stat["iteration"]))
+                if print_flag:
+                    print("Iteration Number=" + str(stat["iteration"]))
                 cpu_state_head = ['Name', 'Id', 'used', 'latencySensitivity', 'vcpu_exclaff']
             ws.append(cpu_state_head)
             table = PrettyTable(cpu_state_head)
@@ -219,7 +227,8 @@ class Report:
                 dat[vcpu_attrib["id"]] = vcpu_attrib["name"]
                 ws.append(temp)
                 table.add_row(temp)
-        print(table)
+        if print_flag:
+            print(table)
         ws.append(['\n'])
         import pandas as pd
         df = pd.read_table(sched_stats_file, sep='\s+')
@@ -227,7 +236,8 @@ class Report:
         head = ['Cpu', 'Name', 'Node', 'Thread']
         ws.append(head)
         table_sched = PrettyTable(head)
-        print("Scheduler stats")
+        if print_flag:
+            print("Scheduler stats")
         for idx, thread in enumerate(df.exclusiveTo):
             if not (thread == 0):
                 temp = [str(df.cpu[idx]), str(dat[thread]), str(df.node[idx]), thread]
@@ -235,19 +245,21 @@ class Report:
                 ws.append(temp)
                 thread_dict[thread] = {'cpu': str(df.cpu[idx]), 'node': str(df.node[idx])}
         ws.append(['\n'])
-        print(table_sched)
-        print(f'saving data as {worksheet} in {file_name}')
+        if print_flag:
+            print(table_sched)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-    def nic_inventory(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def nic_inventory(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         # wb = openpyxl.load_workbook(file_name)
         _LOGGER.info(f'Parsing data for Nic Inventory')
         ws = workbook.create_sheet(worksheet)
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         if "hostname" in theJSON["sysinfo"]:
-            print("Stats for " + theJSON["sysinfo"]["hostname"])
+            if print_flag:
+                print("Stats for " + theJSON["sysinfo"]["hostname"])
             for stat in theJSON["stats"]:
-                print("Iteration Number=" + str(stat["iteration"]))
+                if print_flag:
+                    print("Iteration Number=" + str(stat["iteration"]))
             temp = ['Port', 'switch', 'txpps', 'txmbps', 'rxpps', 'rxmbps']
             table = PrettyTable(temp)
             ws.append(temp)
@@ -255,19 +267,21 @@ class Report:
             temp = [port["name"], port["switch"], port["txpps"], port["txmbps"], port["rxpps"], port["rxmbps"]]
             table.add_row(temp)
             ws.append(temp)
-        print(table)
-        print(f'saving data as {worksheet} in {file_name}')
+        if print_flag:
+            print(table)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-    def nic_stats(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None):
+    def nic_stats(self, workbook=None, worksheet=None, f_netstats=None, f_schedstats=None, file_name=None, print_flag=True):
         _LOGGER.info(f'Parsing data for Nic Status')
         # wb = openpyxl.load_workbook(file_name)
         ws = workbook.create_sheet(worksheet)
         theJSON = json.load(f_netstats)
-        print('-' * 150, sep='\n')
         if "hostname" in theJSON["sysinfo"]:
-            print("Stats for " + theJSON["sysinfo"]["hostname"] + "pps=Packets Per Second")
+            if print_flag:
+                print("Stats for " + theJSON["sysinfo"]["hostname"] + "pps=Packets Per Second")
         for stat in theJSON["stats"]:
-            print("Iteration Number=" + str(stat["iteration"]))
+            if print_flag:
+                print("Iteration Number=" + str(stat["iteration"]))
         temp = ['Port', 'Mac', 'switch', 'txpps', 'txeps', 'txmbps', 'txsize', 'txq_cnt', 'rxpps', 'rxeps', 'rxmbps',
                 'rxsize', 'rxq_cnt']
         table = PrettyTable(temp)
@@ -285,35 +299,41 @@ class Report:
                     port["txsize"], txq_cnt, port["rxpps"], port["rxeps"], port["rxmbps"], port["rxsize"], rxq_cnt]
             table.add_row(temp)
             ws.append(temp)
-        print(table)
-        print(f'saving data as {worksheet} in {file_name}')
+        if print_flag:
+            print(table)
+        print(f' - saving worksheet as {worksheet} in {file_name}')
 
-    def get_excel(self):
+    def get_excel(self, print_flag=True):
+        print(f' - Creating a Excel Workbook.')
         _LOGGER.info(f'Creating a WorkBook')
         wb = openpyxl.Workbook()
+        print(f' - opening Net-stats and Sched-stats..')
+        print(f' - Parsing Net-stats and Sched-stats')
+        print('-'*60, sep='\n')
         _LOGGER.info(f'opening the netstat and schedstats logs.')
         ns = 'server_netstats.logs'
         ss = 'server_schedstats.logs'
         filename = 'excel_dump.xlsx'
         _LOGGER.info(f'Create a worksheet for Exclaff')
         self.exclaff(workbook=wb, worksheet="exclaff", f_netstats=open(ns), f_schedstats=open(ss),
-                        file_name=filename)
+                        file_name=filename, print_flag=print_flag)
         _LOGGER.info(f'Create a worksheet for Check Drop')
         self.check_drop(workbook=wb, worksheet="check drop", f_netstats=open(ns), f_schedstats=open(ss),
-                           file_name=filename)
+                           file_name=filename, print_flag=print_flag)
         _LOGGER.info(f'Create a worksheet for Check Tx Rx')
         self.check_txrx_threads(workbook=wb, worksheet="Check TxRx", f_netstats=open(ns), f_schedstats=open(ss),
-                                   file_name=filename)
+                                   file_name=filename,print_flag=print_flag)
         _LOGGER.info(f'Create a worksheet for Nic Inventory.')
         self.nic_inventory(workbook=wb, worksheet="NIC inventory", f_netstats=open(ns), f_schedstats=open(ss),
-                              file_name=filename)
+                              file_name=filename, print_flag=print_flag)
         _LOGGER.info(f'Create a worksheet for Nic Status')
         self.nic_stats(workbook=wb, worksheet="Nic Stats", f_netstats=open(ns), f_schedstats=open(ss),
-                          file_name=filename)
+                          file_name=filename, print_flag=print_flag)
         _LOGGER.info(f'Create a worksheet for Sys')
-        self.sys(workbook=wb, worksheet="SYS", f_netstats=open(ns), f_schedstats=open(ss), file_name=filename)
+        self.sys(workbook=wb, worksheet="SYS", f_netstats=open(ns), f_schedstats=open(ss), file_name=filename, print_flag=print_flag)
         _LOGGER.info(f'Create a worksheet for VM Stats')
         self.vm_stats(workbook=wb, worksheet="VM Stats", f_netstats=open(ns), f_schedstats=open(ss),
-                         file_name=filename)
+                         file_name=filename, print_flag=print_flag)
         _LOGGER.info(f'Saving the Excel in {filename}')
         wb.save(filename)
+        print(f' - Saving the Excel in {filename}')

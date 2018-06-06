@@ -23,6 +23,7 @@ class TechSupport:
         os.makedirs(dirpath)
         filename = os.path.join(dirpath, f'Command_Line_support.txt')
         logger.info('Creating command line support file...')
+        print(f' - Creating command line support file...')
         try:
             with open(filename, 'w') as f:
                 if client.lower() == 'host':
@@ -43,7 +44,7 @@ class TechSupport:
                                 f.write(f'Error: \n{errors}')
                         HostSession.HostSession().disconnect(target_client)
             logger.info(f'Command Line support file created: {filename}')
-
+            print(f' - Command Line support file created: {filename}')
 
             logger.info('Collecting Net stats....')
             filename = os.path.join(dirpath, f'netstats.log')
@@ -75,18 +76,19 @@ class TechSupport:
                         if len(errors):
                             f.write(f'Error: \n{errors}')
                         logger.info('Collecting environment details...')
-                        filename = os.path.join(dirpath, f'env_details.log')
-                        HostUtil.HostUtil().list_env_details(target_client)
+                        filename = os.path.join(dirpath, f'env_details.txt')
+                        HostUtil.HostUtil().list_env_details(target_client, print_flag=False)
                         HostSession.HostSession().disconnect(target_client)
-
-
+            print(f' - Creating Compressed Tech support file')
             if sys.platform.startswith('win'):
                 filename = shutil.make_archive(dirpath, 'zip', settings.getValue('TECH_SUPPORT_DIR'))
                 logger.info(f'Compressed Tech support file created {filename}')
-                #shutil.rmtree(dirpath)
+                print(f' - Compressed Tech support file created {filename}')
+                # shutil.rmtree(dirpath)
             elif sys.platform.startswith('lin'):
                 filename = shutil.make_archive(dirpath, 'tar', settings.getValue('TECH_SUPPORT_DIR'))
                 logger.info(f'Compressed Tech support file created {filename}')
+                print(f' - Compressed Tech support file created {filename}')
                 shutil.rmtree(dirpath)
         except FileNotFoundError as fex:
             print(f'FileNotFoundError: {fex.filename} {fex.args}\nCheck TECH_SUPPORT_DIR value in common.json')
