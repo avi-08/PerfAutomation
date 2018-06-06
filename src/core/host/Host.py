@@ -33,9 +33,9 @@ class HostConfig:
         :return: (str) ESXi host version and build
         """
         command = 'vmware -v'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
-        self.logger.info('Fetching Output.')
+        self.logger.debug('Fetching Output.')
         return stdout.read().decode().strip('\n')
 
     def reboot_host(self, client, reason):
@@ -53,12 +53,12 @@ class HostConfig:
         """
         self.logger.info(f'Get nic details for {vmnic}')
         command = f'vsish -ep get /net/pNics/{vmnic}/properties'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = eval(stdout.read().decode())
         #self.logger.info(f'Fetching Output:  {output}')
-        self.logger.info("Fetching Output: {'module': 'ixgben', 'version': '1.0.0.0', 'fw_version': '0x800005ab', 'devname': 'vmnic6', 'interface': 'vmklinux', 'hwCap': 1178338091, 'hwAct': 1111229227, 'swAct': 813694976, 'swAssistAct': 0, 'pciSegment': 0, 'pciBus': 5, 'pciSlot': 0, 'pciFunc': 0, 'numaNode': 0, 'pciVendor': 32902, 'pciDevID': 5416, 'linkUp': 1, 'ifOperStatus': 1, 'ifAdminStatus': 1, 'fullDuplex': 1, 'autoNeg': 0, 'linkSpeed': 10000, 'uplinkPort': 33554434, 'flags': 268814, 'networkHint': '2095 192.0.2.100/255.255.255.255, 2093 10.110.209.32/255.255.255.252, 2084 0.0.0.0/0.0.0.0', 'macAddr': '34:64:a9:91:42:08', 'vlanhwtx': 1, 'vlanhwrx': 1, 'states': 255, 'pseudo': 0, 'legacy': 1, 'resPoolsSchedAllowed': 1, 'resPoolsSchedSupported': 1}")
-        self.logger.info('Parsing driver name and version from output.')
+        self.logger.debug("Fetching Output: {'module': 'ixgben', 'version': '1.0.0.0', 'fw_version': '0x800005ab', 'devname': 'vmnic6', 'interface': 'vmklinux', 'hwCap': 1178338091, 'hwAct': 1111229227, 'swAct': 813694976, 'swAssistAct': 0, 'pciSegment': 0, 'pciBus': 5, 'pciSlot': 0, 'pciFunc': 0, 'numaNode': 0, 'pciVendor': 32902, 'pciDevID': 5416, 'linkUp': 1, 'ifOperStatus': 1, 'ifAdminStatus': 1, 'fullDuplex': 1, 'autoNeg': 0, 'linkSpeed': 10000, 'uplinkPort': 33554434, 'flags': 268814, 'networkHint': '2095 192.0.2.100/255.255.255.255, 2093 10.110.209.32/255.255.255.252, 2084 0.0.0.0/0.0.0.0', 'macAddr': '34:64:a9:91:42:08', 'vlanhwtx': 1, 'vlanhwrx': 1, 'states': 255, 'pseudo': 0, 'legacy': 1, 'resPoolsSchedAllowed': 1, 'resPoolsSchedSupported': 1}")
+        self.logger.debug('Parsing driver name and version from output.')
         return {'module': 'ixgben', 'version':'1.0.0.0'}
 
     def verify_nic_driver(self, client, vmnic, driver):   #, version
@@ -107,12 +107,12 @@ class HostConfig:
         return str(False), output
 
     def get_fcoe_status(self, client):
-        self.logger.info('Getting FCoE status')
+        self.logger.debug('Getting FCoE status')
         command = 'esxcfg-module -g ixgbe'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
-        self.logger.info(f'Fetching output: {output}')
+        self.logger.debug(f'Fetching output: {output}')
 
     def is_fcoe_enabled(self, client):
         """
@@ -146,12 +146,12 @@ class HostConfig:
         return str(False), output
 
     def get_rss(self, client, driver):
-        self.logger.info(f'Getting driver details for {driver}')
+        self.logger.debug(f'Getting driver details for {driver}')
         command = f'esxcfg-module -g {driver}'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode().strip('\n')
-        self.logger.info(f'Fetching Output:  {output}')
+        self.logger.debug(f'Fetching Output:  {output}')
         data = output[output.find('options'):].split(' = ')
         return {data[0]:eval(data[1])}
 
@@ -189,13 +189,13 @@ class HostConfig:
         return str(False), output
 
     def get_nic_ring_size(self, client, vmnic):
-        self.logger.info(f'Getting nic ring size for {vmnic}')
+        self.logger.debug(f'Getting nic ring size for {vmnic}')
         command = f'esxcli network nic ring current get --nic-name={vmnic}'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
         data = dict(pair.lstrip().split(': ') for pair in output.split('\n')[:-1])
-        self.logger.info(f'Fetching Output: {data}')
+        self.logger.debug(f'Fetching Output: {data}')
         return data
 
     def verify_nic_ring_size(self, client, vmnic, RX_SIZE, TX_SIZE):
@@ -236,11 +236,11 @@ class HostConfig:
 
     def get_sw_tx_queue_size(self, client):
         command = 'vsish -ep get /config/Net/intOpts/MaxNetifTxQueueLen'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug('Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
         data = eval(output)
-        self.logger.info(f'Fetching Output: {data}')
+        self.logger.debug(f'Fetching Output: {data}')
         return {'sw_tx_queue_size': data['cur']}
 
     def verify_sw_tx_queue_size(self, client, queue_length):
@@ -277,11 +277,11 @@ class HostConfig:
 
     def get_queue_pairing_status(self, client):
         command = 'vsish -ep get /config/Net/intOpts/NetNetqRxQueueFeatPairEnable'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode()
         data = eval(output)
-        self.logger.info(f'Fetching Output: {data}')
+        self.logger.debug(f'Fetching Output: {data}')
         return {'queue_pairing_enabled': data['cur']}
 
     def is_queue_pairing_enabled(self, client):
@@ -320,12 +320,12 @@ class HostConfig:
         pass
 
     def get_split_tx_status(self, client, vmnic):
-        self.logger.info(f'Getting Split Tx status for {vmnic}')
+        self.logger.debug(f'Getting Split Tx status for {vmnic}')
         command = f'vsish -ep get /net/pNics/{vmnic}/sched/txMode'
-        self.logger.info(f'Executing command: {command}')
+        self.logger.debug(f'Executing command: {command}')
         stdin, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode().strip('\n')
-        self.logger.info(f'Fetching Output: {output}')
+        self.logger.debug(f'Fetching Output: {output}')
         return {"txMode": output}
 
     def is_tx_split_enabled(self, client, vmnic):
