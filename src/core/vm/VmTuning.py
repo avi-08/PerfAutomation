@@ -4,7 +4,6 @@ This script tunes Virtual Machine for following properties according to best pra
 1.
 
 """
-from __future__ import print_function
 from src.core.vm import VmUtil
 import re
 from src.util import LogUtil
@@ -14,8 +13,8 @@ __author__ = "Somanath"
 vmUtil = VmUtil.VmUtility()
 _LOGGER = LogUtil.LogUtil()
 
-class VmTunning :
-    
+
+class VmTunning:
     def __init__(self):
         pass
 
@@ -27,7 +26,7 @@ class VmTunning :
         :return:
         """
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
-        _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
         data = stdout.read().decode()
         _LOGGER.debug(f'\nResult of the output : {data}\n')
         data = data.split('\n')
@@ -36,7 +35,7 @@ class VmTunning :
             if d != '':
                 res += d.strip() + '\n'
         res = res.replace('"', '\\"')
-        _LOGGER.info(f'Cleaning the vmx file')
+        _LOGGER.debug(f'Cleaning the vmx file')
         stdin, stdout, stderr = session.exec_command(f'echo "{res}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
 
     def config_latency_sensitivity(self, session, vmname):
@@ -50,13 +49,24 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Replacing sched.cpu.latencySensitivity = \"normal\" to sched.cpu.latencySensitivity = \"high\"')
-            data = data.replace('sched.cpu.latencySensitivity = "normal"', 'sched.cpu.latencySensitivity = "high"')
-            data = data.replace('"', '\\"')
-            _LOGGER.info(f'Adding changes for latency sensitivity in vmx file')
-            stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
-            # return False if stderr.read() else True
-            return True
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  grep "latencySensitivity =" -i')
+            r = stdout.read().decode()
+            st = re.search('"(.*?)"', r)
+            if st:
+                _LOGGER.debug(f'Replacing sched.cpu.latencySensitivity = \"normal\" to sched.cpu.latencySensitivity = \"high\"')
+                data = data.replace('sched.cpu.latencySensitivity = "normal"', 'sched.cpu.latencySensitivity = "high"')
+                data = data.replace('"', '\\"')
+                _LOGGER.debug(f'Adding changes for latency sensitivity in vmx file')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
+                # return False if stderr.read() else True
+                return True
+            else:
+                _LOGGER.debug(f'Adding sched.cpu.latencySensitivity = "high" in vmx file')
+                data += f'sched.cpu.latencySensitivity = "high"'
+                data = data.replace('"', '\\"')
+                _LOGGER.debug(f'Adding changes for latency sensitivity in vmx file ')
+                stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
+                return True
 
     def config_nic_adapter_type(self, session, vmname, adapter,vnic):
         """
@@ -70,24 +80,24 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.virtualDev -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.virtualDev -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.virtualDev -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
                 exist = st.group()
                 exist = exist.strip('"')
-                _LOGGER.info(f'Replacing ethernet{vnic}.virtualDev = \"{exist}\" to ethernet{vnic}.virtualDev = \"{adapter}\"')
+                _LOGGER.debug(f'Replacing ethernet{vnic}.virtualDev = \"{exist}\" to ethernet{vnic}.virtualDev = \"{adapter}\"')
                 data = data.replace(f'ethernet{vnic}.virtualDev = "{exist}"',f'ethernet{vnic}.virtualDev = "{adapter}"')
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for Nic adapter type in vmx file')
+                _LOGGER.debug(f'Adding changes for Nic adapter type in vmx file')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
-                _LOGGER.info(f'Adding ethernet{vnic}.virtualDev = "{adapter}" in vmx file')
+                _LOGGER.debug(f'Adding ethernet{vnic}.virtualDev = "{adapter}" in vmx file')
                 data += f'ethernet{vnic}.virtualDev = "{adapter}"'
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for nic adapter in vmx file ')
+                _LOGGER.debug(f'Adding changes for nic adapter in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
@@ -104,25 +114,25 @@ class VmTunning :
         else:
             data = vmUtil.read_vmx(session, vmname)
             #for vnic in set(vmUtil.get_vnic_no(session, vmname)):
-            _LOGGER.info(f'Executing command :cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
+            _LOGGER.debug(f'Executing command :cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i')
             r = stdout.read().decode()
             flag = re.search('"(.*?)"', r)
             # print(f'ethernet{vnic}.ctxPerDev : {flag}')
             if flag:
-                _LOGGER.info(f'Replacing ethernet{vnic}.ctxPerDev = \"0\" to ethernet{vnic}.ctxPerDev = \"1\"')
+                _LOGGER.debug(f'Replacing ethernet{vnic}.ctxPerDev = \"0\" to ethernet{vnic}.ctxPerDev = \"1\"')
                 data = data.replace(f'ethernet{vnic}.ctxPerDev = "0"', f'ethernet{vnic}.ctxPerDev = "1"')
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for tx thread allocation in vmx file ')
+                _LOGGER.debug(f'Adding changes for tx thread allocation in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
                 # print(f'addding tx thread')
-                _LOGGER.info(f'Adding ethernet{vnic}.ctxPerDev = \"1\" in vmx file ')
+                _LOGGER.debug(f'Adding ethernet{vnic}.ctxPerDev = \"1\" in vmx file ')
                 data += f'ethernet{vnic}.ctxPerDev = "1"'
                 # print(f'addding tx thread {data}')
                 data = data.replace('"', '\\"')
-                _LOGGER.info('Adding changes for tx thread allocation in vmx file ')
+                _LOGGER.debug('Adding changes for tx thread allocation in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
@@ -138,25 +148,25 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
                 cpu = st.group()
                 cpu = cpu.strip('"')
-                _LOGGER.info(f'Replacing : sched.cpu.latencySensitivity.sysContexts = \"{cpu}\" to sched.cpu.latencySensitivity.sysContexts = \"{vcpu}\"')
+                _LOGGER.debug(f'Replacing : sched.cpu.latencySensitivity.sysContexts = \"{cpu}\" to sched.cpu.latencySensitivity.sysContexts = \"{vcpu}\"')
                 data = data.replace(f'sched.cpu.latencySensitivity.sysContexts = "{cpu}"', f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"')
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for sys context in vmx file ')
+                _LOGGER.debug(f'Adding changes for sys context in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
-                _LOGGER.info(f'Adding : sched.cpu.latencySensitivity.sysContexts = \"{vcpu}\" in vmx file ')
+                _LOGGER.debug(f'Adding : sched.cpu.latencySensitivity.sysContexts = \"{vcpu}\" in vmx file ')
                 data += f'sched.cpu.latencySensitivity.sysContexts = "{vcpu}"'
                 data = data.replace('"', '\\"')
                 vmUtil.power_off_vm(session, vmname)
-                _LOGGER.info(f'Adding changes for sys context in vmx file ')
+                _LOGGER.debug(f'Adding changes for sys context in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 vmUtil.power_on_vm(session, vmname)
                 return False if stderr.read() else True
@@ -172,7 +182,7 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.min -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
@@ -181,17 +191,17 @@ class VmTunning :
             if st:
                 old = st.group()
                 old = old.strip('"')
-                _LOGGER.info(f'sched.cpu.min = \"{old}\" to sched.cpu.min = \"{max_size}\"')
+                _LOGGER.debug(f'sched.cpu.min = \"{old}\" to sched.cpu.min = \"{max_size}\"')
                 data = data.replace(f'sched.cpu.min = "{old}"', f'sched.cpu.min = "{max_size}"')
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for cpu reservation in vmx file ')
+                _LOGGER.debug(f'Adding changes for cpu reservation in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
-                _LOGGER.info(f'Adding : sched.cpu.min = \"{max_size}\" in vmx file ')
+                _LOGGER.debug(f'Adding : sched.cpu.min = \"{max_size}\" in vmx file ')
                 data += f'sched.cpu.min = "{max_size}"'
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for cpu reservation in vmx file ')
+                _LOGGER.debug(f'Adding changes for cpu reservation in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
@@ -206,24 +216,24 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Execting command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i')
+            _LOGGER.debug(f'Execting command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
                 old = st.group()
                 old = old.strip('"')
-                _LOGGER.info(f'Replacing : sched.cpu.shares = \"{old}\" to sched.cpu.shares = \"high\"')
+                _LOGGER.debug(f'Replacing : sched.cpu.shares = \"{old}\" to sched.cpu.shares = \"high\"')
                 data = data.replace(f'sched.cpu.shares = "{old}"','sched.cpu.shares = "high"')
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for CPU reservation in vmx file ')
+                _LOGGER.debug(f'Adding changes for CPU reservation in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
-                _LOGGER.info(f'Adding : sched.cpu.shares = "high" in vmx file')
+                _LOGGER.debug(f'Adding : sched.cpu.shares = "high" in vmx file')
                 data += 'sched.cpu.shares = "high"'
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for CPU reservation in vmx file ')
+                _LOGGER.debug(f'Adding changes for CPU reservation in vmx file ')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
@@ -238,24 +248,24 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
                 old = st.group()
                 old = old.strip('"')
-                _LOGGER.info(f'Replacing : sched.mem.shares = \"{old}\" to sched.mem.shares = \"high\"')
+                _LOGGER.debug(f'Replacing : sched.mem.shares = \"{old}\" to sched.mem.shares = \"high\"')
                 data = data.replace(f'sched.mem.shares = "{old}"','sched.mem.shares = "high"')
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for memory share in vmx file.')
+                _LOGGER.debug(f'Adding changes for memory share in vmx file.')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
             else:
-                _LOGGER.info(f'Adding : sched.mem.shares = "high" in vmx file.')
+                _LOGGER.debug(f'Adding : sched.mem.shares = "high" in vmx file.')
                 data += 'sched.mem.shares = "high"'
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for memory share in vmx file.')
+                _LOGGER.debug(f'Adding changes for memory share in vmx file.')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
@@ -270,7 +280,7 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
             _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i')
             r = stdout.read().decode()
@@ -278,10 +288,10 @@ class VmTunning :
             if st:
                 size = st.group()
                 size = size.strip('"')
-                _LOGGER.info(f'Replacing : sched.mem.minSize = "{size}" to sched.mem.minSize = "{vmUtil.get_vm_memory(session, vmname)}"')
+                _LOGGER.debug(f'Replacing : sched.mem.minSize = "{size}" to sched.mem.minSize = "{vmUtil.get_vm_memory(session, vmname)}"')
                 data = data.replace(f'sched.mem.minSize = "{size}"',f'sched.mem.minSize = "{vmUtil.get_vm_memory(session, vmname)}"')
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for memeory reservation in vmx file.')
+                _LOGGER.debug(f'Adding changes for memeory reservation in vmx file.')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
 
@@ -297,30 +307,30 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f' Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "numa.nodeAffinity =" -i')
+            _LOGGER.debug(f' Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "numa.nodeAffinity =" -i')
             stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "numa.nodeAffinity =" -i')
             a = stdout.read().decode()
             e = vmUtil.get_numa_node(session, vmname)
             if a:
-                _LOGGER.info(f'Adding : numa.nodeAffinity = "{e}" in vmx file ')
+                _LOGGER.debug(f'Adding : numa.nodeAffinity = "{e}" in vmx file ')
                 data += f'numa.nodeAffinity = "{e}"'
                 data = data.replace('"', '\\"')
-                _LOGGER.info(f'Adding changes for NUMA affinity in vmx file.')
+                _LOGGER.debug(f'Adding changes for NUMA affinity in vmx file.')
                 stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                 return False if stderr.read() else True
                 # return True
             else:
-                _LOGGER.info(f'Executing command : vsish -e get /net/pNics/{vmnic}/properties | grep NUMA ')
+                _LOGGER.debug(f'Executing command : vsish -e get /net/pNics/{vmnic}/properties | grep NUMA ')
                 stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
                 r = stdout.read().decode()
                 st = re.search('\d', r)
                 if st:
                     numa = st.group()
                     old = vmUtil.get_numa_node(session, vmname)
-                    _LOGGER.info(f'Replacing : numa.nodeAffinity = \"{old}\" to numa.nodeAffinity = \"{numa}\"')
+                    _LOGGER.debug(f'Replacing : numa.nodeAffinity = \"{old}\" to numa.nodeAffinity = \"{numa}\"')
                     data = data.replace(f'numa.nodeAffinity = "{old}"', f'numa.nodeAffinity = "{numa}"')
                     data = data.replace('"', '\\"')
-                    _LOGGER.info(f'Adding changes for NUMA affinity in vmx file.')
+                    _LOGGER.debug(f'Adding changes for NUMA affinity in vmx file.')
                     stdin, stdout, stderr = session.exec_command(f'echo "{data}" > vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx')
                     return False if stderr.read() else True
                 else:
@@ -334,7 +344,7 @@ class VmTunning :
         :return:
         """
         if flag:
-            _LOGGER.info(f'Calculating SysContext ')
+            _LOGGER.debug(f'Calculating SysContext ')
             return 8
         return 2
 
@@ -347,8 +357,8 @@ class VmTunning :
         """
         vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
-            command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity ="'
-            _LOGGER.info(f'Executing command :{command}')
+            command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity =" -i'
+            _LOGGER.debug(f'Executing command :{command}')
             stdin, stdout, stderr = session.exec_command(command)
             r = stdout.read().decode()
             mod = {}
@@ -369,8 +379,8 @@ class VmTunning :
         """
         vmid = vmUtil.get_vm_id(session, vmname)
         if vmid != '':
-            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity ="')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity ="')
+            _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity =" -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep "latencySensitivity =" -i')
             r = stdout.read().decode()
             _LOGGER.debug(f'{r}')
             st = re.search('"(.*?)"', r)
@@ -412,7 +422,7 @@ class VmTunning :
         _LOGGER.debug(f'output : {r}')
         st = re.search('"(.*?)"', r)
         max_size = int(vmUtil.get_vcpu_core(session, vmname)) * int(vmUtil.get_cpu_speed(session))
-        _LOGGER.info(f'max size cpu reservation available : {max_size}')
+        _LOGGER.debug(f'max size cpu reservation available : {max_size}')
         if st:
             status = st.group()
             return True if int(status.strip('"')) == max_size else False
@@ -425,7 +435,7 @@ class VmTunning :
         :return:
         """
         command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.shares -i'
-        _LOGGER.info(f'Executing command : {command}')
+        _LOGGER.debug(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -461,7 +471,7 @@ class VmTunning :
         :return:
         """
         command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.shares -i'
-        _LOGGER.info(f'Executing command : {command}')
+        _LOGGER.debug(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -497,7 +507,7 @@ class VmTunning :
         :return:
         """
         command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.mem.minSize -i'
-        _LOGGER.info(f'Executing command : {command}')
+        _LOGGER.debug(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -533,7 +543,7 @@ class VmTunning :
         :return:
         """
         command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{vnic}.virtualDev -i'
-        _LOGGER.info(f'Executing command : {command}')
+        _LOGGER.debug(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -557,7 +567,7 @@ class VmTunning :
         _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.virtualDev -i')
         stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx |grep ethernet{vnic}.virtualDev -i')
         r = stdout.read().decode()
-        _LOGGER.info(f'networtk adapter : {r}')
+        _LOGGER.debug(f'networtk adapter : {r}')
         st = re.search('"(.*?)"', r)
         if st:
             adapter_type = st.group()
@@ -574,7 +584,7 @@ class VmTunning :
         :return:
         """
         command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep ethernet{vnic}.ctxPerDev -i'
-        _LOGGER.info(f'Eecuting command : {command}')
+        _LOGGER.debug(f'Eecuting command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -615,7 +625,7 @@ class VmTunning :
         :return:
         """
         command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep sched.cpu.latencySensitivity.sysContexts -i'
-        _LOGGER.info(f'Executing command : {command}')
+        _LOGGER.debug(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -651,8 +661,8 @@ class VmTunning :
         :param vmnic: name of the vmNIC
         :return:
         """
-        command = f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA'
-        _LOGGER.info(f'Executing command : {command}')
+        command = f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA -i'
+        _LOGGER.debug(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -672,11 +682,12 @@ class VmTunning :
         :param vmnic: Name of the vmNIC
         :return:
         """
-        _LOGGER.debug(f'Executing command : vsish -e get /net/pNics/{vmnic}/properties | grep NUMA ')
-        stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA')
+        _LOGGER.debug(f'Executing command : vsish -e get /net/pNics/{vmnic}/properties | grep NUMA -i')
+        stdin, stdout, stderr = session.exec_command(f'vsish -e get /net/pNics/{vmnic}/properties | grep NUMA -i')
         r = stdout.read().decode()
         _LOGGER.debug(f'numa affinity to set : {r}')
         st = re.search('\d', r)
+
         if st:
             numa = st.group()
             old = vmUtil.get_numa_node(session, vmname)
@@ -696,8 +707,8 @@ class VmTunning :
             return True
         else:
             data = vmUtil.read_vmx(session, vmname)
-            _LOGGER.info(f'Eecuting command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version -i')
-            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version')
+            _LOGGER.debug(f'Eecuting command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version -i')
+            stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version -i')
             r = stdout.read().decode()
             st = re.search('"(.*?)"', r)
             if st:
@@ -720,8 +731,8 @@ class VmTunning :
         :param vmname: Name of the Virtual Machine
         :return:<dict> the command and the version
         """
-        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version'
-        _LOGGER.info(f'Executing command : {command}')
+        command = f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version -i'
+        _LOGGER.debug(f'Executing command : {command}')
         stdin, stdout, stderr = session.exec_command(command)
         r = stdout.read().decode()
         mod = {}
@@ -741,8 +752,8 @@ class VmTunning :
         :param version: proper hardware version
         :return:<boolean> returns true if the version is match
         """
-        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version')
-        _LOGGER.info(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version')
+        stdin, stdout, stderr = session.exec_command(f'cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version -i')
+        _LOGGER.debug(f'Executing command : cat vmfs/volumes/{vmUtil.get_datastore(session, vmname)}/{vmname}/{vmname}.vmx | grep  virtualHW.version -i')
         r = stdin.read().decode()
         _LOGGER.debug(f'Hardware Version of the Virtual Machine : {r}')
         st = re.search('"(.*?)"', r)
