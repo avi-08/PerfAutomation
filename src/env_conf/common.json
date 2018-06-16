@@ -1,8 +1,8 @@
 {
 
-  "LOG_DIR": "C:\\Users\\somanathr\\Desktop\\PAFLogs",
+  "LOG_DIR": "C:\\Users\\savi\\Desktop\\PAFLogs",
 
-  "LOG_MICS": "C:\\Users\\somanathr\\Desktop\\PAFLogs\\MICS_",
+  "LOG_MICS": "C:\\Users\\savi\\Desktop\\PAFLogs\\MICS_",
 
   "LOG_FILE_PREFIX": "PAFlog_",
 
@@ -15,11 +15,13 @@
   "LOG_TIME_SOURCE": "HOST",
   "__log_time_source_comment__": "This can take value of either 'HOST' or 'NTP'. Specifies source for getting time for logging.",
 
-  "COMPRESSED_LOG_DIR": "C:\\Users\\somanathr\\Desktop\\ZipLogs",
+  "COMPRESSED_LOG_DIR": "C:\\Users\\savi\\Desktop\\ZipLogs",
 
   "COMPRESSION_THRESHOLD": 100,
   "__compression_ratio_comment__": "Minimum size of files(combined) to be compressed(in KB)",
 
-  "TECH_SUPPORT_DIR": "C:\\Users\\somanathr\\Desktop\\PAF_tech_logs"
+  "TECH_SUPPORT_DIR": "C:\\Users\\savi\\Desktop\\PAF_tech_logs",
+
+  "OVF_TOOL_DIR": "C:\\Users\\savi\\Desktop\\ovftool"
 
 }

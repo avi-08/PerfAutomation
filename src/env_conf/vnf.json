@@ -1,9 +1,30 @@
 {
-  "VM_DETAILS": [
-    {
-      "VM_NAME": "TESTDPDK2",
-      "DATASTORE": "TEST-1",
-      "NETWORKS": "demo-pg,demo-pg"
-    }
-  ]
+	"VM_TOPOLOGY" : {
+		"__topology_type_comment__": "specify type of deployment: PVP, PVVP, etc.",
+		"TOPOLOGY_TYPE": "PVP",
+
+		"__ova_file_path_comment__": "Absolute path to the ova file that needs to be deployed.",
+		"OVA_FILE_PATH": "C:\\Users\\savi\\Downloads\\Shared\\dpdk.ova",
+
+		"__vm_details_comment__": "Specify deployment details for each of the VM's to be deployed",
+		"VM_DETAILS": [
+			{
+				"VM_NAME": "DPDK-1",
+				"__networks_comment__": "for the given 3-nic vm, specify first 2 networks(portgroups) for dpdk and the third network for VM management.",
+				"NETWORKS": ["DataPortGroup", "DataPortGroup", "ManagementPortGroup"],
+				"IP_ADDRESS": "192.168.11.12",
+				"NETMASK": "255.255.255.0",
+				"GATEWAY": "192.168.11.253"
+			},
+			{
+				"VM_NAME": "DPDK-2",
+				"NETWORKS": ["DataPortGroup", "DataPortGroup", "ManagementPortGroup"],
+				"IP_ADDRESS": "192.168.11.13",
+				"NETMASK": "255.255.255.0",
+				"GATEWAY": "192.168.11.253"
+			}
+		],
+		"DEPLOYMENT_TARGET": "VCENTER",
+		"DATASTORE": "localdisk-SATA"
+	}
 }
