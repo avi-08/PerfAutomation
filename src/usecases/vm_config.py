@@ -13,7 +13,7 @@
     Configuration are done if the verification fails.
 
 """
-
+import re
 from src.core.vm import VmTuning, VmUtil
 from src.util import HostSession
 from src.core.host import Host
@@ -219,3 +219,58 @@ def get_env_data(client, vm):
     a = vm_tune.get_numa_affinity(client,'vmnic6')
     b['NUMA affinity'] = a['out']
     return b
+
+
+def get_vm_macs(client):
+    stdin, stdout, stderr = client.exec_command('ifconfig | grep HWaddr')
+    pattern = '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:' \
+              '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]'
+    return re.findall(pattern, stdout.read().decode(), re.MULTILINE)[:-1]
+
+
+def dpdk_init():
+    """
+    Configure appropriate mac addresses in startL3fwd.sh files and initiate the script on each of the dpdk VMs.
+    :return:
+    """
+    deploy_settings = settings.getValue('VM_TOPOLOGY')
+    tgen_mac = ''
+    if deploy_settings['TOPOLOGY_TYPE'] == 'PVP':
+        client = HostSession.HostSession().connect(deploy_settings['VM_DETAILS'][0]['IP'], deploy_settings['VM_USER'],
+                                                   deploy_settings['VM_PASSWORD'], False)
+        vm_mac = get_vm_macs(client)
+        pattern = '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:' \
+                  '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]'
+        stdin, stdout, stderr = client.exec_command('cat startL3fwd.sh')
+        dpdk_file_data = stdout.read().decode()
+        pattern1 = '--eth-dest=0,' + pattern
+        pattern2 = '--eth-dest=1,' + pattern
+        dpdk_file_data = re.sub(pattern1, f'--eth-dest=0,{vm_mac[1]}', dpdk_file_data)
+        dpdk_file_data = re.sub(pattern2, f'--eth-dest=1,{tgen_mac}', dpdk_file_data)
+        client.exec_command(f'echo "{dpdk_file_data}" > startL3fwd.sh')
+        client.exec_command(r'sudo ./startL3fwd.sh')
+        HostSession.HostSession().disconnect(client)
+    elif deploy_settings['TOPOLOGY_TYPE'] == 'PVVP':
+        client = []
+        for vm in deploy_settings['VM_DETAILS']:
+            client.append(HostSession.HostSession().connect(vm['IP'], deploy_settings['VM_USER'],
+                                                   deploy_settings['VM_PASSWORD'], False))
+        pattern = '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:' \
+                  '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]'
+        vm_mac = []
+        pattern1 = '--eth-dest=0,' + pattern
+        pattern2 = '--eth-dest=1,' + pattern
+        for i in range(len(client)):
+            vm_mac.append(get_vm_macs(client[i]))
+        for i in range(len(client)):
+            stdin, stdout, stderr = client[i].exec_command('cat startL3fwd.sh')
+            dpdk_file_data = stdout.read().decode()
+            dpdk_file_data = re.sub(pattern1, f'--eth-dest=0,{vm_mac[i][1]}', dpdk_file_data)
+            if i == len(client) - 1:
+                dpdk_file_data = re.sub(pattern2, f'--eth-dest=1,{tgen_mac}', dpdk_file_data)
+            else:
+                dpdk_file_data = re.sub(pattern2, f'--eth-dest=1,{vm_mac[1][i]}', dpdk_file_data)
+            client[i].exec_command(f'echo "{dpdk_file_data}" > startL3fwd.sh')
+            client[i].exec_command(r'sudo ./startL3fwd.sh')
+        for i in range(len(client)):
+            HostSession.HostSession().disconnect(client[i])

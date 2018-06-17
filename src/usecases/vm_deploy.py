@@ -49,7 +49,7 @@ class VMDeploy:
             host_ip = settings.getValue('HOST_DETAILS')[0]['HOST']
             target_user = re.sub('@', '%40', target_user)
             target_password = re.sub('@', '%40', target_password)
-            target_switch = f'"vi://{target_user}:{target_password}@{target_ip}?ip={host_ip}"'
+            target_switch = f'"vi://{target_user}:{target_password}@{target_ip}/?ip={host_ip}"'
         elif deploy_settings['DEPLOYMENT_TARGET'] == "ESXI":
             target_ip = settings.getValue('HOST_DETAILS')[0]['HOST']
             target_user = settings.getValue('HOST_DETAILS')[0]['USER']
@@ -69,32 +69,36 @@ class VMDeploy:
                 dir_name = settings.getValue('OVF_TOOL_DIR')
                 tool_path = os.path.join(dir_name, folder_name, 'ovftool.exe')
                 _LOGGER.debug(f'opening {tool_path} ')
-                command_switches = ['--acceptAllEulas', '--powerOn', '--allowExtraConfig', '--noSSLVerify']
+                command_switches = ['--acceptAllEulas', '--powerOn', '--allowExtraConfig','--noSSLVerify', '--sourceType=OVA']
                 cmd = [tool_path] + command_switches
                 cmd += [f'--datastore="{datastore}"', f'--name="{vm_name}"',
-                        f'--net:{source_networks[0]}="{target_networks[0]}"',
-                        f'--net:{source_networks[1]}="{target_networks[1]}"',
-                        f'--net:{source_networks[2]}="{target_networks[2]}"', f'--prop:"ipAddress"={ip}',
-                        f'--prop:"netmask"={netmask}' f'--prop:"gateway"={gateway}', ova_path, target_switch]
+                        f'--net:"{source_networks[0]}"="{target_networks[0]}"',
+                        f'--net:"{source_networks[1]}"="{target_networks[1]}"',
+                        f'--net:"{source_networks[2]}"="{target_networks[2]}"', f'--prop:"ipAddress"="{ip}"',
+                        f'--prop:"netmask"="{netmask}"', f'--prop:"gateway"="{gateway}"',
+                        f'--prop:"dns"="192.168.11.2"', f'"{ova_path}"', target_switch]
+                print(" ".join(cmd))
                 _LOGGER.debug(f'Executing command: {" ".join(cmd)}')
                 _LOGGER.info('Deploying vm. This might take a few minutes...')
-                result = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode()
+                result = os.system(" ".join(cmd))
                 print(result)
             elif ostype.startswith('linux'):
                 folder_name = 'lin64'
                 dir_name = settings.getValue('OVF_TOOL_DIR')
-                tool_path = os.path.join(dir_name, folder_name, 'ovftool.exe')
+                tool_path = os.path.join(dir_name, folder_name, 'ovftool')
                 _LOGGER.debug(f'opening {tool_path} ')
-                command_switches = ['--acceptAllEulas', '--powerOn', 'allowExtraConfig', 'noSSLVerify']
+                command_switches = ['--acceptAllEulas', '--powerOn', '--allowExtraConfig','--noSSLVerify', '--sourceType=OVA']
                 cmd = [tool_path] + command_switches
                 cmd += [f'--datastore="{datastore}"', f'--name="{vm_name}"',
-                        f'--net:{source_networks[0]}="{target_networks[0]}"',
-                        f'--net:{source_networks[1]}="{target_networks[1]}"',
-                        f'--net:{source_networks[2]}="{target_networks[2]}"', f'--prop:"ipAddress"={ip}',
-                        f'--prop:"netmask"={netmask}' f'--prop:"gateway"={gateway}', ova_path, target_switch]
+                        f'--net:"{source_networks[0]}"="{target_networks[0]}"',
+                        f'--net:"{source_networks[1]}"="{target_networks[1]}"',
+                        f'--net:"{source_networks[2]}"="{target_networks[2]}"', f'--prop:"ipAddress"="{ip}"',
+                        f'--prop:"netmask"="{netmask}"', f'--prop:"gateway"="{gateway}"',
+                        f'--prop:"dns"="192.168.11.2"', f'"{ova_path}"', target_switch]
+                print(" ".join(cmd))
                 _LOGGER.debug(f'Executing command: {" ".join(cmd)}')
                 _LOGGER.info('Deploying vm. This might take a few minutes...')
-                result = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode()
+                result = os.system(" ".join(cmd))
                 print(result)
             # TODO for mac deployment
         return success
