@@ -40,7 +40,7 @@ class Parser:
         parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
                             help='Run test for given test case'
                                  '; a comma seperated list for running multiple tests')
-        parser.add_argument('o', '--list-operations', action='store_true',
+        parser.add_argument('-o', '--list-operations', action='store_true',
                             help='get a list of all available operations and exit')
         parser.add_argument('-p', '--perform', action='store', type=str,
                             choices=['host_optimization', 'vm_deploy', 'vm_optimization', 'traffic_config', 'run_traffic',
