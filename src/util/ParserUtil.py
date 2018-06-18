@@ -48,7 +48,7 @@ class Parser:
                             help='Perform given operation; provide ', metavar=('OPERATION',))
         parser.add_argument('-b', '--generate-support-bundle', action='store', type=str, nargs='*'
                             , default=None, help='Generate support bundle dumps. COMMAND(optional): Provide additional commands seperated by "," \
-                            other than those present in command.json.')
+                            other than those present in command.json.', metavar=('COMMAND',))
         parser.add_argument('--dependency-install', action='store_true', help='install all the dependency required.')
         args = vars(parser.parse_args())
         return args
