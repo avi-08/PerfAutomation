@@ -11,7 +11,9 @@
     "VCENTER_DETAILS": {
         "IP": "192.168.11.3",
         "USER": "administrator@vsphere.local",
-        "PASSWORD": "VMware1!"
+        "PASSWORD": "VMware1!",
+        "SHELL_USER": "root",
+        "SHELL_PASSWORD": "VMware1!"
     },
 
     "NSXV_DETAILS": {

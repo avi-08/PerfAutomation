@@ -32,7 +32,7 @@ def vm_config(keep_defaults=False):
     print(f'''\n{'-'*60}\n\t\t\tInitiating VM Optimizations\n{'-'*60}\n''')
     for host in hosts:
         client = HostSession.HostSession().connect(host['HOST'], host['USER'], host['PASSWORD'], False)
-        temp_vms = settings.getValue('ESXI_65')['VM_NAMES']
+        temp_vms = settings.getValue('VM_TOPOLOGY')['VM_DETAILS']
         ver = conf_host.get_host_version(client)
         _NICS = host['NICS'].split(',')
         _LOGGER.info('Verifying optimization on virtual machine')
@@ -43,71 +43,71 @@ def vm_config(keep_defaults=False):
                 # ESXI 6.5
                 param = settings.getValue('ESXI_65')
                 _LOGGER.info(f'HOST VERSION : ESXI 6.5 ')
-                print(f'- Getting the current configuration of virtual machine :{vm}')
-                print(parser.dict_to_table(get_env_data(client, vm), f'Current configuration of Virtual Machine - {vm}', False))
-                _LOGGER.info(f'virtual machine : {vm}')
+                print(f'- Getting the current configuration of virtual machine :{vm["VM_NAME"]}')
+                print(parser.dict_to_table(get_env_data(client, vm["VM_NAME"]), f'Current configuration of Virtual Machine - {vm["VM_NAME"]}', False))
+                _LOGGER.info(f'virtual machine : {vm["VM_NAME"]}')
                 print(f'- Optimization verification has been started.')
-                vm_util.power_off_vm(client, vm)
-                _LOGGER.info(f'checking Latency sensitivity is set to "high":{vm_tune.verify_latency_sensitivity(client,vm)}')
-                status = vm_tune.config_latency_sensitivity(client, vm)
+                vm_util.power_off_vm(client, vm["VM_NAME"])
+                _LOGGER.info(f'checking Latency sensitivity is set to "high":{vm_tune.verify_latency_sensitivity(client,vm["VM_NAME"])}')
+                status = vm_tune.config_latency_sensitivity(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'Setting latency sensitivity to high : {status}')
                 else:
                     _LOGGER.error(f'Setting latency sensitivity to high :{status}')
 
-                _LOGGER.info(f'checking CPU reservation : {vm_tune.verify_cpu_reservation(client,vm)}')
-                status = vm_tune.config_cpu_reservation(client, vm)
+                _LOGGER.info(f'checking CPU reservation : {vm_tune.verify_cpu_reservation(client,vm["VM_NAME"])}')
+                status = vm_tune.config_cpu_reservation(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing CPU reservation :{status}')
                 else:
                     _LOGGER.error(f'CPU reservation status :{status}')
 
-                _LOGGER.info(f'checking CPU share :{vm_tune.verify_cpu_share(client, vm)}')
-                status = vm_tune.config_cpu_share(client, vm)
+                _LOGGER.info(f'checking CPU share :{vm_tune.verify_cpu_share(client, vm["VM_NAME"])}')
+                status = vm_tune.config_cpu_share(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing CPU share : {status}')
                 else:
                     _LOGGER.error(f'changing CPU share : {status}')
 
-                _LOGGER.info(f'checking Memory reservation : {vm_tune.verify_mem_reservation(client,vm)}')
-                status = vm_tune.config_mem_reservation(client, vm)
+                _LOGGER.info(f'checking Memory reservation : {vm_tune.verify_mem_reservation(client,vm["VM_NAME"])}')
+                status = vm_tune.config_mem_reservation(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing Memory reservation :{status}')
                 else:
                     _LOGGER.error(f'changing Memory reservation :{status}')
 
-                _LOGGER.info(f'checking Memory share :{vm_tune.verify_mem_share(client, vm)}')
-                status = vm_tune.config_mem_share(client, vm)
+                _LOGGER.info(f'checking Memory share :{vm_tune.verify_mem_share(client, vm["VM_NAME"])}')
+                status = vm_tune.config_mem_share(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing Memory share : {status}')
                 else:
                     _LOGGER.error(f'chaging Memory share : {status}')
 
-                for vnic in set(vm_util.get_vnic_no(client, vm)):
-                    _LOGGER.info(f'checking the vNIC adapter type : {vm_tune.verify_nic_adapter_type(client, vm, param["ADAPTER_TYPE"],vnic)}')
-                    status = vm_tune.config_nic_adapter_type(client, vm, param["ADAPTER_TYPE"],vnic)
+                for vnic in set(vm_util.get_vnic_no(client, vm["VM_NAME"])):
+                    _LOGGER.info(f'checking the vNIC adapter type : {vm_tune.verify_nic_adapter_type(client, vm["VM_NAME"], param["ADAPTER_TYPE"],vnic)}')
+                    status = vm_tune.config_nic_adapter_type(client, vm["VM_NAME"], param["ADAPTER_TYPE"],vnic)
                     if status:
                         _LOGGER.info(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
                     else:
                         _LOGGER.error(f'changing the vNIC adapter type  to {param["ADAPTER_TYPE"]}:{status}')
 
-                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vm_tune.verify_tx_thread_allocation(client, vm, vnic)}')
-                    status = vm_tune.config_tx_thread_allocation(client, vm, vnic)
+                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vm_tune.verify_tx_thread_allocation(client, vm["VM_NAME"], vnic)}')
+                    status = vm_tune.config_tx_thread_allocation(client, vm["VM_NAME"], vnic)
                     if status:
                         _LOGGER.info(f'changing the TX thread allocation for vnic{vnic}: {status}')
                     else:
                         _LOGGER.error(f'changing the TX thread allocation  for vnic{vnic}: {status}')
 
-                _LOGGER.info(f'Checking the SysContext : {vm_tune.verify_sys_context(client, vm, vm_tune.get_syscontext_value(client, vm, True))}')
-                status = vm_tune.config_sys_context(client, vm, vm_tune.get_syscontext_value(client, vm, True))
+                _LOGGER.info(f'Checking the SysContext : {vm_tune.verify_sys_context(client, vm["VM_NAME"], vm_tune.get_syscontext_value(client, vm["VM_NAME"], True))}')
+                status = vm_tune.config_sys_context(client, vm["VM_NAME"], vm_tune.get_syscontext_value(client, vm["VM_NAME"], True))
                 if status:
-                    _LOGGER.info(f'changing SysContext value to {vm_tune.get_syscontext_value(client, vm, True)} : {status}')
+                    _LOGGER.info(f'changing SysContext value to {vm_tune.get_syscontext_value(client, vm["VM_NAME"], True)} : {status}')
                 else:
-                    _LOGGER.error(f'changing SysContext value to {vm_tune.get_syscontext_value(client, vm, True)} : {status}')
+                    _LOGGER.error(f'changing SysContext value to {vm_tune.get_syscontext_value(client, vm["VM_NAME"], True)} : {status}')
 
                 for nic in _NICS:
-                    _LOGGER.info(f'Checking the NUMA affinity value for {nic} : {vm_tune.verify_numa_affinity(client,vm, nic)}')
-                    status = vm_tune.config_numa_affinity(client, vm, nic)
+                    _LOGGER.info(f'Checking the NUMA affinity value for {nic} : {vm_tune.verify_numa_affinity(client,vm["VM_NAME"], nic)}')
+                    status = vm_tune.config_numa_affinity(client, vm["VM_NAME"], nic)
                     if status:
                         _LOGGER.info(f'changing NUMA value for {nic}:{status}')
                     else:
@@ -119,78 +119,78 @@ def vm_config(keep_defaults=False):
                 param = settings.getValue('ESXI_60U2')
                 _LOGGER.info(f'HOST VETSION : ESXI 6.0 U2')
                 _LOGGER.info('Verifying optimization on virtual machine')
-                vm_util.power_off_vm(client, vm)
-                print(f' - Getting the current configuration of virtual machine :{vm}')
-                print(parser.dict_to_table(get_env_data(client, vm), f'Current configuration of Virtual Machine :{vm}', False))
+                vm_util.power_off_vm(client, vm["VM_NAME"])
+                print(f' - Getting the current configuration of virtual machine :{vm["VM_NAME"]}')
+                print(parser.dict_to_table(get_env_data(client, vm["VM_NAME"]), f'Current configuration of Virtual Machine :{vm["VM_NAME"]}', False))
                 _LOGGER.info(f'checking Latency sensitivity is set to "high":{vm_tune.verify_latency_sensitivity()}')
-                status = vm_tune.config_latency_sensitivity(client, vm)
+                status = vm_tune.config_latency_sensitivity(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'Setting latency sensitivity to high : {status}')
                 else:
                     _LOGGER.error(f'Setting latency sensitivity to high :{status}')
                     return False
-                _LOGGER.info(f'checking CPU reservation : {vm_tune.verify_cpu_reservation(client,vm)}')
-                status = vm_tune.config_cpu_reservation(client, vm)
+                _LOGGER.info(f'checking CPU reservation : {vm_tune.verify_cpu_reservation(client,vm["VM_NAME"])}')
+                status = vm_tune.config_cpu_reservation(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing CPU reservation :{status}')
                 else:
                     _LOGGER.error(f'changing CPU reservation :{status}')
 
-                _LOGGER.info(f'checking CPU share :{vm_tune.verify_cpu_share(client, vm)}')
-                status = vm_tune.config_cpu_share(client, vm)
+                _LOGGER.info(f'checking CPU share :{vm_tune.verify_cpu_share(client, vm["VM_NAME"])}')
+                status = vm_tune.config_cpu_share(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing CPU share : {status}')
                 else:
                     _LOGGER.error(f'chaging CPU share : {status}')
 
-                _LOGGER.info(f'checking Memory reservation : {vm_tune.verify_mem_reservation(client,vm)}')
-                status = vm_tune.config_mem_reservation(client, vm)
+                _LOGGER.info(f'checking Memory reservation : {vm_tune.verify_mem_reservation(client,vm["VM_NAME"])}')
+                status = vm_tune.config_mem_reservation(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing Memory reservation :{status}')
                 else:
                     _LOGGER.error(f'changing Memory reservation :{status}')
 
-                _LOGGER.info(f'checking Memory share :{vm_tune.verify_mem_share(client, vm)}')
-                status = vm_tune.config_mem_share(client, vm)
+                _LOGGER.info(f'checking Memory share :{vm_tune.verify_mem_share(client, vm["VM_NAME"])}')
+                status = vm_tune.config_mem_share(client, vm["VM_NAME"])
                 if status:
                     _LOGGER.info(f'changing Memory share : {status}')
                 else:
                     _LOGGER.error(f'chaging Memory share : {status}')
 
-                for vnic in set(vm_util.get_vnic_no(client, vm)):
-                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vm_tune.verify_tx_thread_allocation(client, vm,vnic)}')
-                    status = vm_tune.config_tx_thread_allocation(client, vm, vnic)
+                for vnic in set(vm_util.get_vnic_no(client, vm["VM_NAME"])):
+                    _LOGGER.info(f'checking the TX thread Allocation for vnic{vnic}: {vm_tune.verify_tx_thread_allocation(client, vm["VM_NAME"],vnic)}')
+                    status = vm_tune.config_tx_thread_allocation(client, vm["VM_NAME"], vnic)
                     if status:
                         _LOGGER.info(f'changing the TX thread allocation for vnic{vnic}: {status}')
                     else:
                         _LOGGER.error(f'changing the TX thread allocation  for vnic{vnic}:: {status}')
 
-                    _LOGGER.info(f'checking the vNIC adapter type : {vm_tune.verify_nic_adapter_type(client, vm, vm_tune.get_syscontext_value(client, vm, False))}')
-                    status = vm_tune.config_nic_adapter_type(client, vm, vm_tune.get_syscontext_value(client, vm, False))
+                    _LOGGER.info(f'checking the vNIC adapter type : {vm_tune.verify_nic_adapter_type(client, vm["VM_NAME"], vm_tune.get_syscontext_value(client, vm["VM_NAME"], False))}')
+                    status = vm_tune.config_nic_adapter_type(client, vm["VM_NAME"], vm_tune.get_syscontext_value(client, vm["VM_NAME"], False))
                     if status:
-                        _LOGGER.info(f'changing the vNIC adapter type  to {vm_tune.get_syscontext_value(client, vm, False)}:{status}')
+                        _LOGGER.info(f'changing the vNIC adapter type  to {vm_tune.get_syscontext_value(client, vm["VM_NAME"], False)}:{status}')
                     else:
-                        _LOGGER.error(f'changing the vNIC adapter type  to {vm_tune.get_syscontext_value(client, vm, False)}:{status}')
+                        _LOGGER.error(f'changing the vNIC adapter type  to {vm_tune.get_syscontext_value(client, vm["VM_NAME"], False)}:{status}')
 
-                _LOGGER.info(f'Checking the SysContext : {vm_tune.verify_sys_context(client,vm,param["VM_SYSCONTEXT"])}')
-                status = vm_tune.config_sys_context(client, vm, param["VM_SYSCONTEXT"])
+                _LOGGER.info(f'Checking the SysContext : {vm_tune.verify_sys_context(client,vm["VM_NAME"],param["VM_SYSCONTEXT"])}')
+                status = vm_tune.config_sys_context(client, vm["VM_NAME"], param["VM_SYSCONTEXT"])
                 if status:
                     _LOGGER.info(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
                 else:
                     _LOGGER.error(f'changing SysContext value to {param["VM_SYSCONTEXT"]} : {status}')
 
                 for nic in _NICS:
-                    _LOGGER.info(f'Checking the NUMA affinity value for {nic} : {vm_tune.verify_numa_affinity(client,vm, nic)}')
-                    status = vm_tune.config_numa_affinity(client, vm, nic)
+                    _LOGGER.info(f'Checking the NUMA affinity value for {nic} : {vm_tune.verify_numa_affinity(client,vm["VM_NAME"], nic)}')
+                    status = vm_tune.config_numa_affinity(client, vm["VM_NAME"], nic)
                     if status:
                         _LOGGER.info(f'changing NUMA value for {nic}:{status}')
                     else:
                         _LOGGER.error(f'changing NUMA value for {nic}:{status}')
-            vm_tune.clean_file(client, vm)
-            vm_util.power_on_vm(client, vm)
+            vm_tune.clean_file(client, vm["VM_NAME"])
+            vm_util.power_on_vm(client, vm["VM_NAME"])
             print(f'- Virtual machine Verification are done.')
-            print(f'- Getting the current configuration of virtual machine(post Optimization) :{vm}')
-            print(parser.dict_to_table(get_env_data(client, vm), f'Post configuration VM Status- {vm}', False))
+            print(f'- Getting the current configuration of virtual machine(post Optimization) :{vm["VM_NAME"]}')
+            print(parser.dict_to_table(get_env_data(client, vm["VM_NAME"]), f'Post configuration VM Status- {vm["VM_NAME"]}', False))
         HostSession.HostSession().disconnect(client)
 
 
@@ -214,7 +214,7 @@ def get_env_data(client, vm):
         b['Adapter Type'].append(a['out'].strip("\n").strip())
         a = vm_tune.get_tx_thread_allocation(client, vm, vnic)
         b['TX thread'].append(a['out'].strip("\n").strip())
-    a = vm_tune.get_sys_context(client,vm)
+    a = vm_tune.get_sys_context(client, vm)
     b['SysContext'] = a['out']
     a = vm_tune.get_numa_affinity(client,'vmnic6')
     b['NUMA affinity'] = a['out']
@@ -222,10 +222,15 @@ def get_env_data(client, vm):
 
 
 def get_vm_macs(client):
+    """
+    Function to get MAC addresses of VMs using a SSH session.
+    :param client: paramiko SSH client object to VM.
+    :return: list of all MAC addresses of VM.
+    """
     stdin, stdout, stderr = client.exec_command('ifconfig | grep HWaddr')
     pattern = '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]:' \
               '[0-9A-Za-z][0-9A-Za-z]:[0-9A-Za-z][0-9A-Za-z]'
-    return re.findall(pattern, stdout.read().decode(), re.MULTILINE)[:-1]
+    return re.findall(pattern, stdout.read().decode(), re.MULTILINE)
 
 
 def dpdk_init():

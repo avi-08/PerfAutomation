@@ -28,9 +28,9 @@ class Parser:
                             help='Set verbosity level for console output as DEBUG; default level is INFO')
         parser.add_argument('-e', '--list-env-details', action='store', help="List host details and exit", type=str,
                             choices=['all', 'compact'])
-        parser.add_argument('--list-host-optimizations', action='store_true',
+        parser.add_argument('-q', '--list-host-optimizations', action='store_true',
                             help='List current host optimization parameters and exit')
-        parser.add_argument('--host-optimization-type', action='store', type=str,
+        parser.add_argument('-w', '--host-optimization-type', action='store', type=str,
                             help= 'Specify host configuration type(default=standard), possible values="standard + splittx","standard + splitrx", "standard + rss","standard +\
                              splittx + splitrx " "standard + splittx + rss"',
                             metavar=('CONFIG_TYPE',))
@@ -40,14 +40,14 @@ class Parser:
         parser.add_argument('-t', '--testcase', action="store", type=str, metavar=('TESTCASE',),
                             help='Run test for given test case'
                                  '; a comma seperated list for running multiple tests')
-        parser.add_argument('--list-operations', action='store_true',
+        parser.add_argument('o', '--list-operations', action='store_true',
                             help='get a list of all available operations and exit')
         parser.add_argument('-p', '--perform', action='store', type=str,
-                            choices=['host_config', 'vm_deploy', 'vm_config', 'traffic_config', 'run_traffic',
-                                     'monitoring', 'reporting', 'cleanup', 'tech_support'],
+                            choices=['host_optimization', 'vm_deploy', 'vm_optimization', 'traffic_config', 'run_traffic',
+                                     'monitoring', 'reporting', 'cleanup',],
                             help='Perform given operation; provide ', metavar=('OPERATION',))
-        parser.add_argument('--collect-tech-support', action='store', type=str, nargs='*'
-                            , default=None, help='Collect tech support dumps. COMMAND(optional): Provide additional commands seperated by "," \
+        parser.add_argument('-b', '--generate-support-bundle', action='store', type=str, nargs='*'
+                            , default=None, help='Generate support bundle dumps. COMMAND(optional): Provide additional commands seperated by "," \
                             other than those present in command.json.')
         parser.add_argument('--dependency-install', action='store_true', help='install all the dependency required.')
         args = vars(parser.parse_args())
@@ -156,12 +156,12 @@ class Parser:
 
         if args['dependency_install']:
             print(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}/dependency.txt')
-            if self.is_os() == 'linux':
+            if self.get_os() == 'linux':
                 os.system(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}/dependency.txt')
-            elif self.is_os() == 'darwin':
+            elif self.get_os() == 'darwin':
                 os.system(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}/dependency.txt')
             else:
-                # print(self.is_os())
+                # print(self.get_os())
                 os.system(f'pip install -r {os.path.dirname(os.path.abspath(__file__))}/dependency.txt')
             sys.exit(0)
 
@@ -182,7 +182,7 @@ class Parser:
         x.align = 'l'
         return x
 
-    def is_os(self):
+    def get_os(self):
         if platform == "linux" or platform == "linux2":
             return "linux"
         elif platform == "darwin":

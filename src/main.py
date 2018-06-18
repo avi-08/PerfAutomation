@@ -10,9 +10,9 @@ import os
 from src.core.traffic_generator import Trex
 from src.env_conf import settings
 from src.util import LogUtil, ParserUtil
-from src.usecases import host_config
+from src.usecases import host_optimizations
 from src.usecases import vm_deploy
-from src.usecases import vm_config
+from src.usecases import vm_optimizations
 from src.usecases import tech_support
 
 def main():
@@ -55,14 +55,14 @@ def main():
         # Apply host optimizations
         if args['perform'] == 'host_config':
             logger.info('Pre optimization status')
-            host_config.get_host_config()
+            host_optimizations.get_host_config()
             logger.info('Initiating host optimizations.')
-            if host_config.host_config() == False:
+            if host_optimizations.host_config() == False:
                 logger.error('Unable to configure host optimizations.')
                 sys.exit(0)
             else:
                 logger.info('Post optimization status')
-                host_config.get_host_config()
+                host_optimizations.get_host_config()
                 logger.info('Host optimizations successful.')
 
         # Deploy vnfs based on the vnf.json file
@@ -77,7 +77,7 @@ def main():
         # Apply VM optimizations
         if args['perform'] == 'vm_config':
             logger.info('Initiating VM optimization')
-            vm_config.vm_config()
+            vm_optimizations.vm_config()
             logger.info('VM optimization complete')
 
         # Run traffic from traffic generator
@@ -90,7 +90,7 @@ def main():
 
     else:
         logger.info('Initiating host optimizations.')
-        if host_config.host_config() == False:
+        if host_optimizations.host_config() == False:
             logger.error('Unable to configure host optimizations.')
             sys.exit(0)
         else:
@@ -102,7 +102,7 @@ def main():
         else:
             logger.info('VM Deployment complete')
         logger.info('Initiating VM optimization')
-        vm_config.vm_config()
+        vm_optimizations.vm_config()
         logger.info('VM optimization complete')
         trex = Trex.Trex()
         trex.trafficGen()

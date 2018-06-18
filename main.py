@@ -12,9 +12,9 @@ from src.core.traffic_generator import Trex
 #from src.core.traffic_generator.trex_client.stl.trex_automated import *
 from src.env_conf import settings
 from src.util import LogUtil, ParserUtil
-from src.usecases import host_config
+from src.usecases import host_optimizations
 from src.usecases import vm_deploy
-from src.usecases import vm_config,monitoring
+from src.usecases import vm_optimizations,monitoring
 from src.usecases import tech_support,reporting
 
 def main():
@@ -57,14 +57,14 @@ def main():
         # Apply host optimizations
         if args['perform'] == 'host_config':
             logger.info('Pre optimization status')
-            host_config.get_host_config()
+            host_optimizations.get_host_config()
             logger.info('Initiating host optimizations.')
-            if host_config.host_config() == False:
+            if host_optimizations.host_config() == False:
                 logger.error('Unable to configure host optimizations.')
                 sys.exit(0)
             else:
                 logger.info('Post optimization status')
-                host_config.get_host_config()
+                host_optimizations.get_host_config()
                 logger.info('Host optimizations successful.')
 
         # Deploy vnfs based on the vnf.json file
@@ -78,7 +78,7 @@ def main():
         # Apply VM optimizations
         if args['perform'] == 'vm_config':
             logger.info('Initiating VM optimization')
-            vm_config.vm_config()
+            vm_optimizations.vm_config()
             logger.info('VM optimization complete')
 
         # Run traffic from traffic generator
@@ -98,7 +98,7 @@ def main():
             pass
     if args['host_optimization_type']:
         if args['host_optimization_type'] == 'standard+splittx':
-            if not host_config.host_config(splittx=True):
+            if not host_optimizations.host_config(splittx=True):
                 logger.error('Unable to configure host optimizations.')
                 sys.exit(0)
         if args['host_optimization_type'] == 'standard+splitrx':
@@ -106,12 +106,12 @@ def main():
         if args['host_optimization_type'] == 'standard+splittx+splitrx':
             print(args['host_optimization_type'])
         if args['host_optimization_type'] == 'standard+splittx+rss':
-            if not host_config.host_config(splittx=True, rss=True):
+            if not host_optimizations.host_config(splittx=True, rss=True):
                 logger.error('Unable to configure host optimizations.')
                 sys.exit(0)
             print(args['host_optimization_type'])
         if args['host_optimization_type'] == 'standard+rss':
-            if not host_config.host_config(rss=True):
+            if not host_optimizations.host_config(rss=True):
                 logger.error('Unable to configure host optimizations.')
                 sys.exit(0)
             print(args['host_optimization_type'])
@@ -122,7 +122,7 @@ def main():
         for tc in tcase:
             if args['testcase'] in tc['NAME']:
                 logger.info('Initiating host optimizations.')
-                if host_config.host_config() == False:
+                if host_optimizations.host_config() == False:
                     logger.error('Unable to configure host optimizations.')
                     sys.exit(0)
                 else:
@@ -135,13 +135,13 @@ def main():
                 else:
                     logger.info('VM Deployment complete')
                 logger.info('Initiating VM optimization')
-                vm_config.vm_config()
+                vm_optimizations.vm_config()
                 logger.info('VM optimization complete')
                 trex = Trex.Trex()
                 trex.trafficGen()
                 sys.exit(0)
         logger.info('Initiating host optimizations.')
-        if host_config.host_config() == False:
+        if host_optimizations.host_config() == False:
             logger.error('Unable to configure host optimizations.')
             sys.exit(0)
         else:
@@ -153,7 +153,7 @@ def main():
         else:
             logger.info('VM Deployment complete')
         logger.info('Initiating VM optimization')
-        vm_config.vm_config()
+        vm_optimizations.vm_config()
         logger.info('VM optimization complete')
         trex = Trex.Trex()
         trex.trafficGen()
