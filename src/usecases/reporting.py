@@ -1,8 +1,10 @@
 import json, openpyxl
-import sys, os
 from prettytable import PrettyTable
 from src.env_conf import settings
 from src.util import ParserUtil, LogUtil
+import os
+# from os.path import isfile, join
+settings.load_from_dir(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
 _LOGGER = LogUtil.LogUtil()
 
@@ -240,7 +242,7 @@ class Report:
             print("Scheduler stats")
         for idx, thread in enumerate(df.exclusiveTo):
             if not (thread == 0):
-                temp = [str(df.cpu[idx]), str(dat[thread]), str(df.node[idx]), thread]
+                temp = [str(df.cpu[idx]), str(thread), str(df.node[idx]), thread]
                 table_sched.add_row(temp)
                 ws.append(temp)
                 thread_dict[thread] = {'cpu': str(df.cpu[idx]), 'node': str(df.node[idx])}
@@ -313,7 +315,12 @@ class Report:
         _LOGGER.info(f'opening the netstat and schedstats logs.')
         ns = 'server_netstats.logs'
         ss = 'server_schedstats.logs'
+        # ns = 'netstats(10.110.209.156-64B).log'
+        # ss = 'schedstats(10.110.209.156-64B).log'
         filename = 'excel_dump.xlsx'
+        path = os.path.dirname(os.path.abspath(__file__))
+        # files = [f for f in listdir(path) if isfile(join(path, f))]
+        # print(files)
         _LOGGER.info(f'Create a worksheet for Exclaff')
         self.exclaff(workbook=wb, worksheet="exclaff", f_netstats=open(ns), f_schedstats=open(ss),
                         file_name=filename, print_flag=print_flag)
